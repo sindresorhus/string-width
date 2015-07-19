@@ -5,6 +5,10 @@ var isFullwidthCodePoint = require('is-fullwidth-code-point');
 
 // https://github.com/nodejs/io.js/blob/cff7300a578be1b10001f2d967aaedc88aee6402/lib/readline.js#L1345
 module.exports = function (str) {
+	if (typeof str !== 'string' || str.length === 0) {
+		return 0;
+	}
+
 	var width = 0;
 
 	str = stripAnsi(str);
