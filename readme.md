@@ -32,6 +32,7 @@ stringWidth('a');
 
 ## Related
 
+- [string-width-cli](https://github.com/sindresorhus/string-width-cli) - CLI for this module
 - [string-length](https://github.com/sindresorhus/string-length) - Get the real length of a string
 
 
