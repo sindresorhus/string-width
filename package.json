@@ -10,7 +10,7 @@
     "url": "sindresorhus.com"
   },
   "engines": {
-    "node": ">=0.10.0"
+    "node": ">=4"
   },
   "scripts": {
     "test": "xo && ava"
@@ -45,12 +45,14 @@
     "fixed-width"
   ],
   "dependencies": {
-    "code-point-at": "^1.0.0",
-    "is-fullwidth-code-point": "^1.0.0",
+    "is-fullwidth-code-point": "^2.0.0",
     "strip-ansi": "^3.0.0"
   },
   "devDependencies": {
     "ava": "*",
     "xo": "*"
+  },
+  "xo": {
+    "esnext": true
   }
 }
