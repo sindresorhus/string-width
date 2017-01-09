@@ -29,6 +29,24 @@ stringWidth('a');
 //=> 1
 ```
 
+## API
+
+### stringWidth(str, [options])
+
+#### str
+
+Type: `string`
+
+Text
+
+#### options
+
+##### ambiguousCharWidth
+
+Type: `int`<br>
+Values: 1 (halfwidth) or 2 (fullwidth)
+
+Width of the ambiguous char.
 
 ## Related
 
