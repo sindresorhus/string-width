@@ -30,7 +30,7 @@ module.exports = (str, opts) => {
 			i++;
 		}
 
-		// could be 1 or 2
+		// could be halfwidth or fullwidth
 		if (ambiguousChar(code)) {
 			width += ambiguousCharWidth;
 			continue;
@@ -47,7 +47,7 @@ module.exports = (str, opts) => {
 };
 
 function ambiguousChar(code) {
-	const ambiguousCodesList = [
+	const ambiguousCodes = [
 		[0x00A1, 0x00A1], [0x00A4, 0x00A4], [0x00A7, 0x00A8],
 		[0x00AA, 0x00AA], [0x00AE, 0x00AE], [0x00B0, 0x00B4],
 		[0x00B6, 0x00BA], [0x00BC, 0x00BF], [0x00C6, 0x00C6],
@@ -107,8 +107,8 @@ function ambiguousChar(code) {
 		[0xF0000, 0xFFFFD], [0x100000, 0x10FFFD]
 	];
 
-	for (let i = 0; i < ambiguousCodesList.length; i++) {
-		if (code >= ambiguousCodesList[i][0] && code <= ambiguousCodesList[i][1]) {
+	for (const c of ambiguousCodes) {
+		if (code >= c[0] && code <= c[1]) {
 			return true;
 		}
 	}
