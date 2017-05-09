@@ -20,3 +20,7 @@ test('ignores control characters', t => {
 	t.is(m(String.fromCharCode(159)), 0);
 	t.is(m('\u001b'), 0);
 });
+
+test.failing('handles combining characters', t => {
+	t.is(m('x\u0300'), 1);
+});
