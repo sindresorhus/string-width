@@ -51,8 +51,5 @@
   "devDependencies": {
     "ava": "*",
     "xo": "*"
-  },
-  "xo": {
-    "esnext": true
   }
 }
