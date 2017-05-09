@@ -8,6 +8,9 @@ test('main', t => {
 	t.is(m('ノード.js'), 9);
 	t.is(m('你好'), 4);
 	t.is(m('안녕하세요'), 10);
+	t.is(m('안녕※하세요', {ambiguousCharWidth: 1}), 11);
+	t.is(m('안녕※하세요', {ambiguousCharWidth: 2}), 12);
+	t.is(m('안녕※하세요'), 12);
 	t.is(m('A\ud83c\ude00BC'), 5, 'surrogate');
 	t.is(m('\u001b[31m\u001b[39m'), 0);
 });
