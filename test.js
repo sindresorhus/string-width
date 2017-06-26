@@ -8,8 +8,8 @@ test('main', t => {
 	t.is(m('ノード.js'), 9);
 	t.is(m('你好'), 4);
 	t.is(m('안녕하세요'), 10);
-	t.is(m('A\ud83c\ude00BC'), 5, 'surrogate');
-	t.is(m('\u001b[31m\u001b[39m'), 0);
+	t.is(m('A\uD83C\uDE00BC'), 5, 'surrogate');
+	t.is(m('\u001B[31m\u001B[39m'), 0);
 });
 
 test('ignores control characters', t => {
@@ -18,7 +18,7 @@ test('ignores control characters', t => {
 	t.is(m(String.fromCharCode(127)), 0);
 	t.is(m(String.fromCharCode(134)), 0);
 	t.is(m(String.fromCharCode(159)), 0);
-	t.is(m('\u001b'), 0);
+	t.is(m('\u001B'), 0);
 });
 
 test.failing('handles combining characters', t => {
