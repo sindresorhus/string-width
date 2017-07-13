@@ -45,6 +45,7 @@
     "fixed-width"
   ],
   "dependencies": {
+    "emoji-regex": "^6.4.3",
     "is-fullwidth-code-point": "^2.0.0",
     "strip-ansi": "^4.0.0"
   },
