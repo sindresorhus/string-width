@@ -14,13 +14,13 @@ module.exports = str => {
 	for (let i = 0; i < str.length; i++) {
 		const code = str.codePointAt(i);
 
-		// Ignore control characters
-		if (code <= 0x1F || (code >= 0x7F && code <= 0x9F)) {
+		// Ignore control characters & combining characters
+		if (code <= 0x1F || (code >= 0x7F && code <= 0x9F) || (code >= 0x300 && code <= 0x36F)) {
 			continue;
 		}
 
 		// Surrogates
-		if (code >= 0x10000) {
+		if (code > 0xFFFF) {
 			i++;
 		}
 
