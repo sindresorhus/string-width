@@ -21,6 +21,6 @@ test('ignores control characters', t => {
 	t.is(m('\u001B'), 0);
 });
 
-test.failing('handles combining characters', t => {
+test('handles combining characters', t => {
 	t.is(m('x\u0300'), 1);
 });
