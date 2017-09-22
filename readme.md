@@ -36,6 +36,11 @@ stringWidth('a');
 - [string-length](https://github.com/sindresorhus/string-length) - Get the real length of a string
 - [widest-line](https://github.com/sindresorhus/widest-line) - Get the visual width of the widest line in a string
 
+## Contributing
+Recommended reads:
+- https://en.wikipedia.org/wiki/Code_point
+- https://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms
+- https://en.wikipedia.org/wiki/Zero-width_non-joiner
 
 ## License
 

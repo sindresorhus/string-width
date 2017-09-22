@@ -24,3 +24,11 @@ test('ignores control characters', t => {
 test('handles combining characters', t => {
 	t.is(m('x\u0300'), 1);
 });
+
+test('handles zero-width-joiners - ZWJ ONLY', t => {
+	// Random samples from http://unicode.org/emoji/charts/emoji-zwj-sequences.html
+	// Family: man, woman, boy
+	t.is(m('\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F466}', {joinAroundZWJ: true}), 1);
+	// Family: woman, woman, boy, boy
+	t.is(m('👩‍👩‍👦‍👦', {joinAroundZWJ: true}), 1);
+});
