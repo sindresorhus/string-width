@@ -2,12 +2,18 @@
 const stripAnsi = require('strip-ansi');
 const isFullwidthCodePoint = require('is-fullwidth-code-point');
 
-module.exports = str => {
+module.exports = (str, opts) => {
 	if (typeof str !== 'string' || str.length === 0) {
 		return 0;
 	}
 
-	str = stripAnsi(str);
+	opts = Object.assign({
+		stripAnsi: true
+	}, opts);
+
+	if (opts.stripAnsi) {
+		str = stripAnsi(str);
+	}
 
 	let width = 0;
 

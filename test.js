@@ -24,3 +24,7 @@ test('ignores control characters', t => {
 test('handles combining characters', t => {
 	t.is(m('x\u0300'), 1);
 });
+
+test('option to disable stripAnsi', t => {
+	t.not(m('\u001B[31m\u001B[39m', {stripAnsi: false}), 0);
+});
