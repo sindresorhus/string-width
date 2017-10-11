@@ -29,6 +29,25 @@ stringWidth('a');
 //=> 1
 ```
 
+## API
+
+### stringWidth(str, [options])
+
+#### str
+
+Type: `string`
+
+String to count visual width.
+
+#### options
+
+##### stripAnsi
+
+Type: `boolean`<br>
+Default: `true`
+
+Determine whether to strip ansi.
+
 
 ## Related
 
