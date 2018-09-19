@@ -10,6 +10,10 @@ test('main', t => {
 	t.is(m('안녕하세요'), 10);
 	t.is(m('A\uD83C\uDE00BC'), 5, 'surrogate');
 	t.is(m('\u001B[31m\u001B[39m'), 0);
+	t.is(m('\u{231A}'), 2, '⌚ default emoji presentation character (Emoji_Presentation)');
+	t.is(m('\u{2194}\u{FE0F}'), 2, '↔️ default text presentation character rendered as emoji');
+	t.is(m('\u{1F469}'), 2, '👩 emoji modifier base (Emoji_Modifier_Base)');
+	t.is(m('\u{1F469}\u{1F3FF}'), 2, '👩🏿 emoji modifier base followed by a modifier');
 });
 
 test('ignores control characters', t => {
