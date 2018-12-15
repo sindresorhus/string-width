@@ -1,8 +1,11 @@
 'use strict';
 const stripAnsi = require('strip-ansi');
 const isFullwidthCodePoint = require('is-fullwidth-code-point');
+const emojiRegex = require('emoji-regex')();
 
 module.exports = str => {
+	str = str.replace(emojiRegex, '  ');
+
 	if (typeof str !== 'string' || str.length === 0) {
 		return 0;
 	}
