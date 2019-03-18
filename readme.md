@@ -19,17 +19,14 @@ $ npm install string-width
 ```js
 const stringWidth = require('string-width');
 
-stringWidth('古');
-//=> 2
-
-stringWidth('\u001b[1m古\u001b[22m');
-//=> 2
-
 stringWidth('a');
 //=> 1
 
-stringWidth('\u001B]8;;https://github.com\u0007Click\u001B]8;;\u0007');
-// => 5
+stringWidth('古');
+//=> 2
+
+stringWidth('\u001B[1m古\u001B[22m');
+//=> 2
 ```
 
 
