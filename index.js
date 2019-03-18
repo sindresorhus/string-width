@@ -3,7 +3,7 @@ const stripAnsi = require('strip-ansi');
 const isFullwidthCodePoint = require('is-fullwidth-code-point');
 const emojiRegex = require('emoji-regex')();
 
-module.exports = input => {
+const stringWidth = input => {
 	input = input.replace(emojiRegex, '  ');
 
 	if (typeof input !== 'string' || input.length === 0) {
@@ -37,3 +37,6 @@ module.exports = input => {
 
 	return width;
 };
+
+module.exports = stringWidth;
+module.exports.default = stringWidth;
