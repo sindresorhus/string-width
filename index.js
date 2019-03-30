@@ -39,4 +39,5 @@ const stringWidth = string => {
 };
 
 module.exports = stringWidth;
+// TODO: remove this in the next major version
 module.exports.default = stringWidth;
