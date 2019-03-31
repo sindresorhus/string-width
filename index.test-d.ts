@@ -1,4 +1,4 @@
-import {expectType} from 'tsd-check';
-import stringWidth from '.';
+import {expectType} from 'tsd';
+import stringWidth = require('.');
 
 expectType<number>(stringWidth('古'));
