@@ -46,7 +46,7 @@
 	"dependencies": {
 		"emoji-regex": "^8.0.0",
 		"is-fullwidth-code-point": "^3.0.0",
-		"strip-ansi": "^5.2.0"
+		"strip-ansi": "^6.0.0"
 	},
 	"devDependencies": {
 		"ava": "^1.4.1",
