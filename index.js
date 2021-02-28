@@ -7,7 +7,7 @@ const stringWidth = string => {
 	if (typeof string !== 'string' || string.length === 0) {
 		return 0;
 	}
-	
+
 	string = stripAnsi(string);
 
 	if (string.length === 0) {
