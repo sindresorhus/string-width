@@ -1,4 +1,4 @@
 import {expectType} from 'tsd';
-import stringWidth = require('.');
+import stringWidth from './index.js';
 
 expectType<number>(stringWidth('古'));

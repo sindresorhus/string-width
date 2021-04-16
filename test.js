@@ -1,5 +1,5 @@
 import test from 'ava';
-import stringWidth from '.';
+import stringWidth from './index.js';
 
 test('main', t => {
 	t.is(stringWidth('abcde'), 5);

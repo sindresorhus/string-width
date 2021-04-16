@@ -1,9 +1,8 @@
-'use strict';
-const stripAnsi = require('strip-ansi');
-const isFullwidthCodePoint = require('is-fullwidth-code-point');
-const emojiRegex = require('emoji-regex');
+import stripAnsi from 'strip-ansi';
+import isFullwidthCodePoint from 'is-fullwidth-code-point';
+import emojiRegex from 'emoji-regex';
 
-const stringWidth = string => {
+export default function stringWidth(string) {
 	if (typeof string !== 'string' || string.length === 0) {
 		return 0;
 	}
@@ -18,30 +17,26 @@ const stringWidth = string => {
 
 	let width = 0;
 
-	for (let i = 0; i < string.length; i++) {
-		const code = string.codePointAt(i);
+	for (let index = 0; index < string.length; index++) {
+		const codePoint = string.codePointAt(index);
 
 		// Ignore control characters
-		if (code <= 0x1F || (code >= 0x7F && code <= 0x9F)) {
+		if (codePoint <= 0x1F || (codePoint >= 0x7F && codePoint <= 0x9F)) {
 			continue;
 		}
 
 		// Ignore combining characters
-		if (code >= 0x300 && code <= 0x36F) {
+		if (codePoint >= 0x300 && codePoint <= 0x36F) {
 			continue;
 		}
 
 		// Surrogates
-		if (code > 0xFFFF) {
-			i++;
+		if (codePoint > 0xFFFF) {
+			index++;
 		}
 
-		width += isFullwidthCodePoint(code) ? 2 : 1;
+		width += isFullwidthCodePoint(codePoint) ? 2 : 1;
 	}
 
 	return width;
-};
-
-module.exports = stringWidth;
-// TODO: remove this in the next major version
-module.exports.default = stringWidth;
+}
