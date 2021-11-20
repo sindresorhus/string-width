@@ -17,4 +17,8 @@ stringWidth('\u001B[1m古\u001B[22m');
 //=> 2
 ```
 */
-export default function stringWidth(string: string): number;
+export interface Options {
+	ambiguousIsNarrow: boolean;
+}
+
+export default function stringWidth(string: string, options?: Options): number;
