@@ -1,3 +1,12 @@
+export interface Options {
+	/**
+	Count [Ambiguous characters](https://www.unicode.org/reports/tr11/#Ambiguous) as a width of 1, false counts as 2.
+
+	@default false
+	*/
+	readonly ambiguousIsNarrow: boolean;
+}
+
 /**
 Get the visual width of a string - the number of columns required to display it.
 
@@ -17,8 +26,4 @@ stringWidth('\u001B[1m古\u001B[22m');
 //=> 2
 ```
 */
-export interface Options {
-	ambiguousIsNarrow: boolean;
-}
-
 export default function stringWidth(string: string, options?: Options): number;
