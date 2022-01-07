@@ -1,5 +1,5 @@
 import stripAnsi from 'strip-ansi';
-import eaw from 'eastasianwidth';
+import eastAsianWidth from 'eastasianwidth';
 import emojiRegex from 'emoji-regex';
 
 export default function stringWidth(string, options = {}) {
@@ -30,7 +30,7 @@ export default function stringWidth(string, options = {}) {
 			continue;
 		}
 
-		const code = eaw.eastAsianWidth(string.charAt(index));
+		const code = eastAsianWidth.eastAsianWidth(string.charAt(index));
 		switch (code) {
 			case 'F':
 			case 'W':
