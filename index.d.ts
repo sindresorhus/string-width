@@ -1,6 +1,6 @@
 export interface Options {
 	/**
-	Count [Ambiguous characters](https://www.unicode.org/reports/tr11/#Ambiguous) as a width of 1, false counts as 2.
+	Count [ambiguous width characters](https://www.unicode.org/reports/tr11/#Ambiguous) as having narrow width (count of 1) instead of wide (count of 2).
 
 	@default false
 	*/
