@@ -1,8 +1,8 @@
 import stripAnsi from 'strip-ansi';
-import isFullwidthCodePoint from 'is-fullwidth-code-point';
+import eastAsianWidth from 'eastasianwidth';
 import emojiRegex from 'emoji-regex';
 
-export default function stringWidth(string) {
+export default function stringWidth(string, options = {}) {
 	if (typeof string !== 'string' || string.length === 0) {
 		return 0;
 	}
@@ -15,6 +15,7 @@ export default function stringWidth(string) {
 
 	string = string.replace(emojiRegex(), '  ');
 
+	const ambiguousCharWidth = options.ambiguousIsNarrow ? 1 : 2;
 	let width = 0;
 
 	for (let index = 0; index < string.length; index++) {
@@ -30,12 +31,18 @@ export default function stringWidth(string) {
 			continue;
 		}
 
-		// Surrogates
-		if (codePoint > 0xFFFF) {
-			index++;
+		const code = eastAsianWidth.eastAsianWidth(string.charAt(index));
+		switch (code) {
+			case 'F':
+			case 'W':
+				width += 2;
+				break;
+			case 'A':
+				width += ambiguousCharWidth;
+				break;
+			default:
+				width += 1;
 		}
-
-		width += isFullwidthCodePoint(codePoint) ? 2 : 1;
 	}
 
 	return width;

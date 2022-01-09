@@ -27,6 +27,27 @@ stringWidth('\u001B[1m古\u001B[22m');
 //=> 2
 ```
 
+## API
+
+### stringWidth(string, options?)
+
+#### string
+
+Type: `string`
+
+The string to be counted.
+
+#### options
+
+Type: `object`
+
+##### ambiguousIsNarrow
+
+Type: `boolean`\
+Default: `false`
+
+Count [ambiguous width characters](https://www.unicode.org/reports/tr11/#Ambiguous) as having narrow width (count of 1) instead of wide width (count of 2).
+
 ## Related
 
 - [string-width-cli](https://github.com/sindresorhus/string-width-cli) - CLI for this module
