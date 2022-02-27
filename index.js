@@ -7,6 +7,11 @@ export default function stringWidth(string, options = {}) {
 		return 0;
 	}
 
+	options = {
+		ambiguousIsNarrow: true,
+		...options
+	};
+
 	string = stripAnsi(string);
 
 	if (string.length === 0) {
@@ -15,7 +20,7 @@ export default function stringWidth(string, options = {}) {
 
 	string = string.replace(emojiRegex(), '  ');
 
-	const ambiguousCharWidth = options.ambiguousIsNarrow ? 1 : 2;
+	const ambiguousCharacterWidth = options.ambiguousIsNarrow ? 1 : 2;
 	let width = 0;
 
 	for (let index = 0; index < string.length; index++) {
@@ -38,7 +43,7 @@ export default function stringWidth(string, options = {}) {
 				width += 2;
 				break;
 			case 'A':
-				width += ambiguousCharWidth;
+				width += ambiguousCharacterWidth;
 				break;
 			default:
 				width += 1;

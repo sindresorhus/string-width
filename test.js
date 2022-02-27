@@ -5,8 +5,9 @@ test('main', t => {
 	t.is(stringWidth('abcde'), 5);
 	t.is(stringWidth('古池や'), 6);
 	t.is(stringWidth('あいうabc'), 9);
-	t.is(stringWidth('あいう★'), 8);
-	t.is(stringWidth('あいう★', {ambiguousIsNarrow: true}), 7);
+	t.is(stringWidth('あいう★'), 7);
+	t.is(stringWidth('あいう★', {ambiguousIsNarrow: false}), 8);
+	t.is(stringWidth('±'), 1);
 	t.is(stringWidth('ノード.js'), 9);
 	t.is(stringWidth('你好'), 4);
 	t.is(stringWidth('안녕하세요'), 10);
