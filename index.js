@@ -23,8 +23,8 @@ export default function stringWidth(string, options = {}) {
 	const ambiguousCharacterWidth = options.ambiguousIsNarrow ? 1 : 2;
 	let width = 0;
 
-	for (let index = 0; index < string.length; index++) {
-		const codePoint = string.codePointAt(index);
+	for (const character of string) {
+		const codePoint = character.codePointAt(0);
 
 		// Ignore control characters
 		if (codePoint <= 0x1F || (codePoint >= 0x7F && codePoint <= 0x9F)) {
@@ -36,7 +36,7 @@ export default function stringWidth(string, options = {}) {
 			continue;
 		}
 
-		const code = eastAsianWidth.eastAsianWidth(string.charAt(index));
+		const code = eastAsianWidth.eastAsianWidth(character);
 		switch (code) {
 			case 'F':
 			case 'W':
