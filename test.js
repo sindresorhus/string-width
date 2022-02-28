@@ -32,3 +32,10 @@ test('ignores control characters', t => {
 test('handles combining characters', t => {
 	t.is(stringWidth('x\u0300'), 1);
 });
+
+test('handles ZWJ characters', t => {
+	t.is(stringWidth('👶'), 2);
+	t.is(stringWidth('👶🏽'), 2);
+	t.is(stringWidth('👩‍👩‍👦‍👦'), 2);
+	t.is(stringWidth('👨‍❤️‍💋‍👨'), 2);
+});
