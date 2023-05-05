@@ -19,6 +19,8 @@ test('main', t => {
 	t.is(stringWidth('\u{1F469}'), 2, '👩 emoji modifier base (Emoji_Modifier_Base)');
 	t.is(stringWidth('\u{1F469}\u{1F3FF}'), 2, '👩🏿 emoji modifier base followed by a modifier');
 	t.is(stringWidth('\u{845B}\u{E0100}'), 2, 'Variation Selectors');
+  t.is(stringWidth("ปฏัก"), 3, 'Thai script');
+  t.is(stringWidth("_\u0E34"), 1, 'Thai script');
 });
 
 test('ignores control characters', t => {
