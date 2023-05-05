@@ -5,6 +5,13 @@ export interface Options {
 	@default true
 	*/
 	readonly ambiguousIsNarrow: boolean;
+
+	/**
+	Whether [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code) should be counted. They are ignored by default.
+
+	@default false
+	*/
+	readonly countAnsiEscapeCodes: boolean;
 }
 
 /**

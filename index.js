@@ -9,10 +9,13 @@ export default function stringWidth(string, options = {}) {
 
 	options = {
 		ambiguousIsNarrow: true,
+		countAnsiEscapeCodes: false,
 		...options
 	};
 
-	string = stripAnsi(string);
+	if (!options.countAnsiEscapeCodes) {
+		string = stripAnsi(string);
+	}
 
 	if (string.length === 0) {
 		return 0;
