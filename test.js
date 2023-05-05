@@ -22,11 +22,11 @@ test('main', t => {
 });
 
 test('ignores control characters', t => {
-	t.is(stringWidth(String.fromCharCode(0)), 0);
-	t.is(stringWidth(String.fromCharCode(31)), 0);
-	t.is(stringWidth(String.fromCharCode(127)), 0);
-	t.is(stringWidth(String.fromCharCode(134)), 0);
-	t.is(stringWidth(String.fromCharCode(159)), 0);
+	t.is(stringWidth(String.fromCodePoint(0)), 0);
+	t.is(stringWidth(String.fromCodePoint(31)), 0);
+	t.is(stringWidth(String.fromCodePoint(127)), 0);
+	t.is(stringWidth(String.fromCodePoint(134)), 0);
+	t.is(stringWidth(String.fromCodePoint(159)), 0);
 	t.is(stringWidth('\u001B'), 0);
 });
 

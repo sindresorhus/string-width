@@ -11,14 +11,14 @@ function * splitString(string) {
 	}
 }
 
-export default function stringWidth(string, options = {}) {
+export default function stringWidth(string, options) {
 	if (typeof string !== 'string' || string.length === 0) {
 		return 0;
 	}
 
 	options = {
 		ambiguousIsNarrow: true,
-		...options
+		...options,
 	};
 
 	string = stripAnsi(string);
@@ -41,21 +41,26 @@ export default function stringWidth(string, options = {}) {
 		}
 
 		// Ignore combining characters
-		if (codePoint >= 0x300 && codePoint <= 0x36F) {
+		if (codePoint >= 0x3_00 && codePoint <= 0x3_6F) {
 			continue;
 		}
 
 		const code = eastAsianWidth.eastAsianWidth(character);
 		switch (code) {
 			case 'F':
-			case 'W':
+			case 'W': {
 				width += 2;
 				break;
-			case 'A':
+			}
+
+			case 'A': {
 				width += ambiguousCharacterWidth;
 				break;
-			default:
+			}
+
+			default: {
 				width += 1;
+			}
 		}
 	}
 

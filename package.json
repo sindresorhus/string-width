@@ -48,12 +48,12 @@
 	],
 	"dependencies": {
 		"eastasianwidth": "^0.2.0",
-		"emoji-regex": "^9.2.2",
+		"emoji-regex": "^10.2.1",
 		"strip-ansi": "^7.0.1"
 	},
 	"devDependencies": {
-		"ava": "^3.15.0",
-		"tsd": "^0.14.0",
-		"xo": "^0.38.2"
+		"ava": "^5.2.0",
+		"tsd": "^0.28.1",
+		"xo": "^0.54.2"
 	}
 }
