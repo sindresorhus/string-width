@@ -7,7 +7,7 @@ export interface Options {
 	readonly ambiguousIsNarrow: boolean;
 
 	/**
-	Whether [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code) should be counted. They are ignored by default.
+	Whether [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code) should be counted.
 
 	@default false
 	*/
