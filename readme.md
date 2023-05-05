@@ -53,7 +53,7 @@ Count [ambiguous width characters](https://www.unicode.org/reports/tr11/#Ambiguo
 Type: `boolean`\
 Default: `false`
 
-Whether [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code) should be counted. They are ignored by default.
+Whether [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code) should be counted.
 
 ## Related
 
