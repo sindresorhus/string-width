@@ -18,7 +18,7 @@ test('main', t => {
 	t.is(stringWidth('\u{2194}\u{FE0F}'), 2, '↔️ default text presentation character rendered as emoji');
 	t.is(stringWidth('\u{1F469}'), 2, '👩 emoji modifier base (Emoji_Modifier_Base)');
 	t.is(stringWidth('\u{1F469}\u{1F3FF}'), 2, '👩🏿 emoji modifier base followed by a modifier');
-	t.is(stringWidth("\u{845B}\u{E0100}"), 2, 'Variation Selectors');
+	t.is(stringWidth('\u{845B}\u{E0100}'), 2, 'Variation Selectors');
 });
 
 test('ignores control characters', t => {
