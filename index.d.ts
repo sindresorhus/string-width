@@ -1,11 +1,11 @@
-export interface Options {
+export type Options = {
 	/**
 	Count [ambiguous width characters](https://www.unicode.org/reports/tr11/#Ambiguous) as having narrow width (count of 1) instead of wide width (count of 2).
 
 	@default true
 	*/
 	readonly ambiguousIsNarrow: boolean;
-}
+};
 
 /**
 Get the visual width of a string - the number of columns required to display it.

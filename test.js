@@ -18,14 +18,17 @@ test('main', t => {
 	t.is(stringWidth('\u{2194}\u{FE0F}'), 2, '↔️ default text presentation character rendered as emoji');
 	t.is(stringWidth('\u{1F469}'), 2, '👩 emoji modifier base (Emoji_Modifier_Base)');
 	t.is(stringWidth('\u{1F469}\u{1F3FF}'), 2, '👩🏿 emoji modifier base followed by a modifier');
+	t.is(stringWidth('\u{845B}\u{E0100}'), 2, 'Variation Selectors');
+	t.is(stringWidth('ปฏัก'), 3, 'Thai script');
+	t.is(stringWidth('_\u0E34'), 1, 'Thai script');
 });
 
 test('ignores control characters', t => {
-	t.is(stringWidth(String.fromCharCode(0)), 0);
-	t.is(stringWidth(String.fromCharCode(31)), 0);
-	t.is(stringWidth(String.fromCharCode(127)), 0);
-	t.is(stringWidth(String.fromCharCode(134)), 0);
-	t.is(stringWidth(String.fromCharCode(159)), 0);
+	t.is(stringWidth(String.fromCodePoint(0)), 0);
+	t.is(stringWidth(String.fromCodePoint(31)), 0);
+	t.is(stringWidth(String.fromCodePoint(127)), 0);
+	t.is(stringWidth(String.fromCodePoint(134)), 0);
+	t.is(stringWidth(String.fromCodePoint(159)), 0);
 	t.is(stringWidth('\u001B'), 0);
 });
 
