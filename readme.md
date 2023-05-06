@@ -8,8 +8,8 @@ Useful to be able to measure the actual width of command-line output.
 
 ## Install
 
-```
-$ npm install string-width
+```sh
+npm install string-width
 ```
 
 ## Usage
@@ -60,15 +60,3 @@ Whether [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code) shou
 - [string-width-cli](https://github.com/sindresorhus/string-width-cli) - CLI for this module
 - [string-length](https://github.com/sindresorhus/string-length) - Get the real length of a string
 - [widest-line](https://github.com/sindresorhus/widest-line) - Get the visual width of the widest line in a string
-
----
-
-<div align="center">
-	<b>
-		<a href="https://tidelift.com/subscription/pkg/npm-string-width?utm_source=npm-string-width&utm_medium=referral&utm_campaign=readme">Get professional support for this package with a Tidelift subscription</a>
-	</b>
-	<br>
-	<sub>
-		Tidelift helps make open source sustainable for maintainers while giving companies<br>assurances about security, maintenance, and licensing for their dependencies.
-	</sub>
-</div>
