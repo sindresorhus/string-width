@@ -4,7 +4,14 @@ export type Options = {
 
 	@default true
 	*/
-	readonly ambiguousIsNarrow: boolean;
+	readonly ambiguousIsNarrow?: boolean;
+
+	/**
+	Whether [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code) should be counted.
+
+	@default false
+	*/
+	readonly countAnsiEscapeCodes?: boolean;
 };
 
 /**

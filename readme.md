@@ -44,9 +44,16 @@ Type: `object`
 ##### ambiguousIsNarrow
 
 Type: `boolean`\
-Default: `false`
+Default: `true`
 
 Count [ambiguous width characters](https://www.unicode.org/reports/tr11/#Ambiguous) as having narrow width (count of 1) instead of wide width (count of 2).
+
+##### countAnsiEscapeCodes
+
+Type: `boolean`\
+Default: `false`
+
+Whether [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code) should be counted.
 
 ## Related
 
