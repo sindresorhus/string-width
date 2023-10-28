@@ -2,6 +2,7 @@ import test from 'ava';
 import stringWidth from './index.js';
 
 test('main', t => {
+	t.is(stringWidth('⛣', {ambiguousIsNarrow: false}), 2);
 	t.is(stringWidth('abcde'), 5);
 	t.is(stringWidth('古池や'), 6);
 	t.is(stringWidth('あいうabc'), 9);
@@ -22,6 +23,7 @@ test('main', t => {
 	t.is(stringWidth('\u{845B}\u{E0100}'), 2, 'Variation Selectors');
 	t.is(stringWidth('ปฏัก'), 3, 'Thai script');
 	t.is(stringWidth('_\u0E34'), 1, 'Thai script');
+	t.is(stringWidth('“', {ambiguousIsNarrow: false}), 2);
 });
 
 test('ignores control characters', t => {

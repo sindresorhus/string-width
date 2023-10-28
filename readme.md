@@ -48,6 +48,9 @@ Default: `true`
 
 Count [ambiguous width characters](https://www.unicode.org/reports/tr11/#Ambiguous) as having narrow width (count of 1) instead of wide width (count of 2).
 
+> Ambiguous characters behave like wide or narrow characters depending on the context (language tag, script identification, associated font, source of data, or explicit markup; all can provide the context). **If the context cannot be established reliably, they should be treated as narrow characters by default.**
+> - http://www.unicode.org/reports/tr11/
+
 ##### countAnsiEscapeCodes
 
 Type: `boolean`\
@@ -60,3 +63,4 @@ Whether [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code) shou
 - [string-width-cli](https://github.com/sindresorhus/string-width-cli) - CLI for this module
 - [string-length](https://github.com/sindresorhus/string-length) - Get the real length of a string
 - [widest-line](https://github.com/sindresorhus/widest-line) - Get the visual width of the widest line in a string
+- [get-east-asian-width](https://github.com/sindresorhus/get-east-asian-width) - Determine the East Asian Width of a Unicode character

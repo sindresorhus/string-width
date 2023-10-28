@@ -1,19 +1,18 @@
 import stripAnsi from 'strip-ansi';
-import eastAsianWidth from 'eastasianwidth';
+import {eastAsianWidth} from 'get-east-asian-width';
 import emojiRegex from 'emoji-regex';
 
-export default function stringWidth(string, options) {
+export default function stringWidth(string, options = {}) {
 	if (typeof string !== 'string' || string.length === 0) {
 		return 0;
 	}
 
-	options = {
-		ambiguousIsNarrow: true,
-		countAnsiEscapeCodes: false,
-		...options,
-	};
+	const {
+		ambiguousIsNarrow = true,
+		countAnsiEscapeCodes = false,
+	} = options;
 
-	if (!options.countAnsiEscapeCodes) {
+	if (!countAnsiEscapeCodes) {
 		string = stripAnsi(string);
 	}
 
@@ -21,7 +20,6 @@ export default function stringWidth(string, options) {
 		return 0;
 	}
 
-	const ambiguousCharacterWidth = options.ambiguousIsNarrow ? 1 : 2;
 	let width = 0;
 
 	for (const {segment: character} of new Intl.Segmenter().segment(string)) {
@@ -42,23 +40,7 @@ export default function stringWidth(string, options) {
 			continue;
 		}
 
-		const code = eastAsianWidth.eastAsianWidth(character);
-		switch (code) {
-			case 'F':
-			case 'W': {
-				width += 2;
-				break;
-			}
-
-			case 'A': {
-				width += ambiguousCharacterWidth;
-				break;
-			}
-
-			default: {
-				width += 1;
-			}
-		}
+		width += eastAsianWidth(codePoint, {ambiguousAsWide: !ambiguousIsNarrow});
 	}
 
 	return width;
