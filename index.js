@@ -40,6 +40,12 @@ export default function stringWidth(string, options = {}) {
 			continue;
 		}
 
+		// For grapheme contains more than one code points
+		if (character.codePointAt(1)) {
+			width += 2;
+			continue;
+		}
+
 		width += eastAsianWidth(codePoint, {ambiguousAsWide: !ambiguousIsNarrow});
 	}
 
