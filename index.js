@@ -2,6 +2,8 @@ import stripAnsi from 'strip-ansi';
 import {eastAsianWidth} from 'get-east-asian-width';
 import emojiRegex from 'emoji-regex';
 
+const segmenter = new Intl.Segmenter();
+
 export default function stringWidth(string, options = {}) {
 	if (typeof string !== 'string' || string.length === 0) {
 		return 0;
@@ -21,8 +23,9 @@ export default function stringWidth(string, options = {}) {
 	}
 
 	let width = 0;
+	const eastAsianWidthOptions = {ambiguousAsWide: !ambiguousIsNarrow};
 
-	for (const {segment: character} of new Intl.Segmenter().segment(string)) {
+	for (const {segment: character} of segmenter.segment(string)) {
 		const codePoint = character.codePointAt(0);
 
 		// Ignore control characters
@@ -40,7 +43,7 @@ export default function stringWidth(string, options = {}) {
 			continue;
 		}
 
-		width += eastAsianWidth(codePoint, {ambiguousAsWide: !ambiguousIsNarrow});
+		width += eastAsianWidth(codePoint, eastAsianWidthOptions);
 	}
 
 	return width;
