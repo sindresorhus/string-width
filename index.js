@@ -34,7 +34,7 @@ export default function stringWidth(string, options = {}) {
 		}
 
 		// Ignore zero-width characters
-		if (codePoint === 0x200B) {
+		if (codePoint === 0x200_B) {
 			continue;
 		}
 
