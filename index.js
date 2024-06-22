@@ -33,6 +33,11 @@ export default function stringWidth(string, options = {}) {
 			continue;
 		}
 
+		// Ignore zero-width characters
+		if (codePoint === 0x200B) {
+			continue;
+		}
+
 		// Ignore combining characters
 		if (codePoint >= 0x3_00 && codePoint <= 0x3_6F) {
 			continue;
