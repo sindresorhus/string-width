@@ -45,3 +45,9 @@ test('handles ZWJ characters', t => {
 	t.is(stringWidth('👩‍👩‍👦‍👦'), 2);
 	t.is(stringWidth('👨‍❤️‍💋‍👨'), 2);
 });
+
+test('handles zero-width characters', t => {
+	t.is(stringWidth('\u200B'), 0);
+	t.is(stringWidth('x\u200Bx'), 2);
+});
+
