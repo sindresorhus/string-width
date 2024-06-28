@@ -52,7 +52,7 @@
 		"east-asian-width"
 	],
 	"dependencies": {
-		"emoji-regex": "^10.3.0",
+		"emoji-regex-xs": "^1.0.0",
 		"get-east-asian-width": "^1.0.0",
 		"strip-ansi": "^7.1.0"
 	},

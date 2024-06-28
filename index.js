@@ -1,6 +1,6 @@
 import stripAnsi from 'strip-ansi';
 import {eastAsianWidth} from 'get-east-asian-width';
-import emojiRegex from 'emoji-regex';
+import emojiRegex from 'emoji-regex-xs';
 
 const segmenter = new Intl.Segmenter();
 
@@ -38,7 +38,6 @@ export default function stringWidth(string, options = {}) {
 			continue;
 		}
 
-		// TODO: Use `/\p{RGI_Emoji}/v` when targeting Node.js 20.
 		if (emojiRegex().test(character)) {
 			width += 2;
 			continue;
