@@ -1,6 +1,6 @@
 {
 	"name": "string-width",
-	"version": "7.1.0",
+	"version": "7.2.0",
 	"description": "Get the visual width of a string - the number of columns required to display it",
 	"license": "MIT",
 	"repository": "sindresorhus/string-width",
