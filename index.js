@@ -1,4 +1,4 @@
-import stripAnsi from 'strip-ansi';
+import {stripVTControlCharacters} from 'node:util';
 import {eastAsianWidth} from 'get-east-asian-width';
 import emojiRegex from 'emoji-regex';
 
@@ -17,7 +17,7 @@ export default function stringWidth(string, options = {}) {
 	} = options;
 
 	if (!countAnsiEscapeCodes) {
-		string = stripAnsi(string);
+		string = stripVTControlCharacters(string);
 	}
 
 	if (string.length === 0) {
