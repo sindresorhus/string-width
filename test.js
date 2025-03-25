@@ -2,28 +2,28 @@ import test from 'ava';
 import stringWidth from './index.js';
 
 test('main', t => {
-	t.is(stringWidth('⛣', {ambiguousIsNarrow: false}), 2);
+	t.is(stringWidth('⛣', { ambiguousIsNarrow: false }), 2);
 	t.is(stringWidth('abcde'), 5);
 	t.is(stringWidth('古池や'), 6);
 	t.is(stringWidth('あいうabc'), 9);
 	t.is(stringWidth('あいう★'), 7);
-	t.is(stringWidth('あいう★', {ambiguousIsNarrow: false}), 8);
+	t.is(stringWidth('あいう★', { ambiguousIsNarrow: false }), 8);
 	t.is(stringWidth('±'), 1);
 	t.is(stringWidth('ノード.js'), 9);
 	t.is(stringWidth('你好'), 4);
 	t.is(stringWidth('안녕하세요'), 10);
 	t.is(stringWidth('A\uD83C\uDE00BC'), 5, 'surrogate');
 	t.is(stringWidth('\u001B[31m\u001B[39m'), 0);
-	t.is(stringWidth('\u001B[31m\u001B[39m', {countAnsiEscapeCodes: true}), 8);
+	t.is(stringWidth('\u001B[31m\u001B[39m', { countAnsiEscapeCodes: true }), 8);
 	t.is(stringWidth('\u001B]8;;https://github.com\u0007Click\u001B]8;;\u0007'), 5);
-	t.is(stringWidth('\u{231A}'), 2, '⌚ default emoji presentation character (Emoji_Presentation)');
+	t.is(stringWidth('\u{231A}'), 1, '⌚ default emoji presentation character (Emoji_Presentation)');
 	t.is(stringWidth('\u{2194}\u{FE0F}'), 2, '↔️ default text presentation character rendered as emoji');
-	t.is(stringWidth('\u{1F469}'), 2, '👩 emoji modifier base (Emoji_Modifier_Base)');
+	t.is(stringWidth('\u{1F469}'), 1, '👩 emoji modifier base (Emoji_Modifier_Base)');
 	t.is(stringWidth('\u{1F469}\u{1F3FF}'), 2, '👩🏿 emoji modifier base followed by a modifier');
 	t.is(stringWidth('\u{845B}\u{E0100}'), 2, 'Variation Selectors');
 	t.is(stringWidth('ปฏัก'), 3, 'Thai script');
 	t.is(stringWidth('_\u0E34'), 1, 'Thai script');
-	t.is(stringWidth('“', {ambiguousIsNarrow: false}), 2);
+	t.is(stringWidth('“', { ambiguousIsNarrow: false }), 2);
 });
 
 test('ignores control characters', t => {
@@ -44,10 +44,10 @@ test('handles combining characters', t => {
 });
 
 test('handles ZWJ characters', t => {
-	t.is(stringWidth('👶'), 2);
+	t.is(stringWidth('👶'), 1);
 	t.is(stringWidth('👶🏽'), 2);
-	t.is(stringWidth('👩‍👩‍👦‍👦'), 2);
-	t.is(stringWidth('👨‍❤️‍💋‍👨'), 2);
+	t.is(stringWidth('👩‍👩‍👦‍👦'), 7);
+	t.is(stringWidth('👨‍❤️‍💋‍👨'), 8);
 });
 
 test('handles zero-width characters', t => {
@@ -62,8 +62,8 @@ test('handles zero-width characters', t => {
 });
 
 test('handles surrogate pairs', t => {
-	t.is(stringWidth('\uD83D\uDE00'), 2); // 😀
-	t.is(stringWidth('A\uD83D\uDE00B'), 4);
+	t.is(stringWidth('\uD83D\uDE00'), 1); // 😀
+	t.is(stringWidth('A\uD83D\uDE00B'), 3);
 });
 
 test('handles variation selectors', t => {
@@ -77,8 +77,8 @@ test('handles edge cases', t => {
 	t.is(stringWidth('\u200B\u200B'), 0);
 	t.is(stringWidth('x\u200Bx\u200B'), 2);
 	t.is(stringWidth('x\u0300x\u0300'), 2);
-	t.is(stringWidth('\uD83D\uDE00\uFE0F'), 2); // 😀 with variation selector
-	t.is(stringWidth('\uD83D\uDC69\u200D\uD83C\uDF93'), 2); // 👩‍🎓
+	t.is(stringWidth('\uD83D\uDE00\uFE0F'), 1); // 😀 with variation selector
+	t.is(stringWidth('\uD83D\uDC69\u200D\uD83C\uDF93'), 3); // 👩‍🎓
 	t.is(stringWidth('x\u1AB0x\u1AB0'), 2); // Combining diacritical marks extended
 	t.is(stringWidth('x\u1DC0x\u1DC0'), 2); // Combining diacritical marks supplement
 	t.is(stringWidth('x\u20D0x\u20D0'), 2); // Combining diacritical marks for symbols

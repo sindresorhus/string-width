@@ -70,8 +70,11 @@ export default function stringWidth(string, options = {}) {
 		}
 
 		// TODO: Use `/\p{RGI_Emoji}/v` when targeting Node.js 20.
-		if (emojiRegex().test(character)) {
-			width += 2;
+		const emojiMatch = character.match(emojiRegex());
+		if (emojiMatch) {
+			const emoji = emojiMatch[0];
+			const codePoints = [...emoji].length;
+			width += codePoints;
 			continue;
 		}
 
@@ -80,3 +83,4 @@ export default function stringWidth(string, options = {}) {
 
 	return width;
 }
+
