@@ -14,6 +14,7 @@ export default function stringWidth(string, options = {}) {
 	const {
 		ambiguousIsNarrow = true,
 		countAnsiEscapeCodes = false,
+		skipEmojis = false,
 	} = options;
 
 	if (!countAnsiEscapeCodes) {
@@ -70,11 +71,10 @@ export default function stringWidth(string, options = {}) {
 		}
 
 		// TODO: Use `/\p{RGI_Emoji}/v` when targeting Node.js 20.
-		const emojiMatch = character.match(emojiRegex());
-		if (emojiMatch) {
-			const emoji = emojiMatch[0];
-			const codePoints = [...emoji].length;
-			width += codePoints;
+		if (!skipEmojis && emojiRegex().test(character)) {
+			width += stringWidth(character, {
+				skipEmojis: true
+			})
 			continue;
 		}
 
