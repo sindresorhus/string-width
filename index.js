@@ -32,16 +32,26 @@ function isZeroWidthCluster(segment) {
 }
 
 function isDoubleWidthEmojiCluster(segment) {
+	const hasVs16 = segment.includes('\uFE0F');
+
+	if (hasVs16) {
+		return true;
+	}
+
 	const visible = baseVisible(segment);
 	const baseScalar = visible.codePointAt(0);
 	const baseChar = String.fromCodePoint(baseScalar);
 	const baseIsEmojiPresentation = emojiPresentationRegex.test(baseChar);
-	const hasVs16 = segment.includes('\uFE0F');
 	const hasVs15 = segment.includes('\uFE0E');
+
+	if (baseIsEmojiPresentation && !hasVs15) {
+		return true;
+	}
+
 	const codePointCount = [...segment].length;
 	const multiScalarMeaningful = codePointCount > 1 && !(codePointCount === 2 && hasVs15 && !hasVs16);
 
-	return hasVs16 || (baseIsEmojiPresentation && !hasVs15) || multiScalarMeaningful;
+	return multiScalarMeaningful;
 }
 
 function trailingHalfwidthWidth(segment, eastAsianWidthOptions) {
