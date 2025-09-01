@@ -158,3 +158,94 @@ test('prepend + emoji', macro, '\u0600😀', 2);
 
 // Sequence consisting only of default ignorables should be zero
 test('only default ignorables (tags)', macro, '\u{E0020}\u{E007F}', 0);
+
+// Emoji coverage for RGI and related cases
+// Case 1: Emoji with VS16 (should be double-width)
+test('digit with VS16 (keycap base)', macro, '0\uFE0F', 1); // Digits/asterisk/pound are not RGI emoji
+test('asterisk with VS16', macro, '*\uFE0F', 1);
+test('pound with VS16', macro, '#\uFE0F', 1);
+test('trademark with VS16', macro, '™\uFE0F', 2);
+test('watch with VS16', macro, '⌚\uFE0F', 2);
+test('phone with VS16', macro, '☎\uFE0F', 2);
+test('keyboard with VS16', macro, '⌨\uFE0F', 2);
+test('envelope with VS16', macro, '✉\uFE0F', 2);
+
+// Case 2: Emoji_Presentation characters without VS15 (should be double-width)
+test('face emoji (has Emoji_Presentation)', macro, '😀', 2);
+test('heart emoji (has Emoji_Presentation)', macro, '❤️', 2);
+test('fire emoji (has Emoji_Presentation)', macro, '🔥', 2);
+test('rocket emoji (has Emoji_Presentation)', macro, '🚀', 2);
+test('star emoji (has Emoji_Presentation)', macro, '⭐', 2);
+
+// Case 3: Emoji_Presentation with VS15 (should be single-width)
+test('heart with VS15 (text style)', macro, '❤\uFE0E', 1);
+test('star with VS15 (text style)', macro, '⭐\uFE0E', 2); // Star with VS15 still renders as 2 in terminals
+
+// Case 4: Multi-scalar meaningful sequences (should be double-width)
+test('keycap sequence 0️⃣', macro, '0️⃣', 2);
+test('keycap sequence 1️⃣', macro, '1️⃣', 2);
+test('keycap sequence 9️⃣', macro, '9️⃣', 2);
+test('keycap sequence *️⃣', macro, '*️⃣', 2);
+test('keycap sequence #️⃣', macro, '#️⃣', 2);
+test('flag emoji GB', macro, '🇬🇧', 2);
+test('flag emoji JP', macro, '🇯🇵', 2);
+test('skin tone modifier', macro, '👋🏻', 2);
+test('skin tone modifier dark', macro, '👋🏿', 2);
+test('couple with heart', macro, '👨‍❤️‍👨', 2);
+test('woman technologist', macro, '👩‍💻', 2);
+test('man health worker', macro, '👨‍⚕️', 2);
+
+// Case 5: Non-emoji presentation without VS16 (should be single-width via EAW)
+test('watch without VS', macro, '⌚', 2); // Watch is actually RGI emoji with Emoji_Presentation
+test('phone without VS (not Emoji_Presentation)', macro, '☎', 1);
+test('keyboard without VS (not Emoji_Presentation)', macro, '⌨', 1);
+test('envelope without VS (not Emoji_Presentation)', macro, '✉', 1);
+
+// Case 6: Edge cases for multi-scalar logic
+test('single code point with VS15 (2 scalars but not meaningful)', macro, 'A\uFE0E', 1);
+test('emoji with VS15 only (2 scalars, VS15 present)', macro, '⌚\uFE0E', 2); // Watch with VS15 still renders as 2
+test('three code points with VS15 at end', macro, 'A👋\uFE0E', 3);
+
+// Case 7: RGI emoji coverage
+test('RGI emoji face', macro, '😊', 2);
+test('RGI emoji hand', macro, '✋', 2);
+test('RGI emoji animal', macro, '🐶', 2);
+test('RGI emoji food', macro, '🍕', 2);
+test('RGI emoji flag', macro, '🏁', 2);
+
+// Case 8: Complex emoji sequences that test all branches
+test('emoji with combining mark', macro, '😀\u0301', 2);
+test('emoji with ZWJ and another emoji', macro, '😀\u200D😀', 2);
+test('text character made emoji with VS16', macro, '↔\uFE0F', 2);
+test('text character kept text with VS15', macro, '↔\uFE0E', 1);
+
+// Case 9: Non-RGI sequences
+test('non-RGI with VS16', macro, '〰\uFE0F', 2);
+test('non-RGI multi-scalar', macro, '☎\uFE0F\u20E3', 1); // Not RGI emoji, counts as 1
+
+// Case 10: VS15 on Emoji_Presentation remain width 2 in most terminals via EAW
+test('hourglass with VS15', macro, '⌛\uFE0E', 2);
+test('fast-forward with VS15', macro, '⏩\uFE0E', 2);
+test('rewind with VS15', macro, '⏪\uFE0E', 2);
+test('arrow double up with VS15', macro, '⏫\uFE0E', 2);
+test('arrow double down with VS15', macro, '⏬\uFE0E', 2);
+test('alarm clock with VS15', macro, '⏰\uFE0E', 2);
+test('hourglass flowing sand with VS15', macro, '⏳\uFE0E', 2);
+test('umbrella with rain with VS15', macro, '☔\uFE0E', 2);
+test('hot beverage with VS15', macro, '☕\uFE0E', 2);
+// Removed redundant duplicate of '⭐\uFE0E' test
+
+// Other emoji that may not have Emoji_Presentation but are affected
+test('sun with VS15', macro, '☀\uFE0E', 1);
+test('cloud with VS15', macro, '☁\uFE0E', 1);
+test('umbrella with VS15', macro, '☂\uFE0E', 1);
+test('snowman with VS15', macro, '☃\uFE0E', 1);
+test('comet with VS15', macro, '☄\uFE0E', 1);
+test('black nib with VS15', macro, '✒\uFE0E', 1);
+test('heavy check mark with VS15', macro, '✔\uFE0E', 1);
+
+// More edge cases for single-scalar text characters (not emoji)
+test('digit zero as plain text (not emoji)', macro, '0', 1);
+test('digit one as plain text', macro, '1', 1);
+test('asterisk as plain text', macro, '*', 1);
+test('hash as plain text', macro, '#', 1);

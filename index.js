@@ -6,7 +6,7 @@ Logic:
 - Segment graphemes to match how terminals render clusters.
 - Width rules:
 	1. Skip non-printing clusters (Default_Ignorable, Control, pure Mark, lone Surrogates). Tabs are ignored by design.
-	2. Emoji clusters are double-width only when VS16 is present, the base has Emoji_Presentation (and not VS15), or the cluster has multiple scalars (flags, ZWJ, keycaps, tags, etc.).
+	2. RGI emoji clusters (\p{RGI_Emoji}) are double-width.
 	3. Otherwise use East Asian Width of the cluster’s first visible code point, and add widths for trailing Halfwidth/Fullwidth Forms within the same cluster (e.g., dakuten/handakuten/prolonged sound mark).
 */
 
@@ -20,8 +20,6 @@ const leadingNonPrintingRegex = /^[\p{Default_Ignorable_Code_Point}\p{Control}\p
 
 // RGI emoji sequences
 const rgiEmojiRegex = /^\p{RGI_Emoji}$/v;
-// Default emoji presentation (single-scalar emoji without VS16)
-const emojiPresentationRegex = /^\p{Emoji_Presentation}$/v;
 
 function baseVisible(segment) {
 	return segment.replace(leadingNonPrintingRegex, '');
@@ -29,29 +27,6 @@ function baseVisible(segment) {
 
 function isZeroWidthCluster(segment) {
 	return zeroWidthClusterRegex.test(segment);
-}
-
-function isDoubleWidthEmojiCluster(segment) {
-	const hasVs16 = segment.includes('\uFE0F');
-
-	if (hasVs16) {
-		return true;
-	}
-
-	const visible = baseVisible(segment);
-	const baseScalar = visible.codePointAt(0);
-	const baseChar = String.fromCodePoint(baseScalar);
-	const baseIsEmojiPresentation = emojiPresentationRegex.test(baseChar);
-	const hasVs15 = segment.includes('\uFE0E');
-
-	if (baseIsEmojiPresentation && !hasVs15) {
-		return true;
-	}
-
-	const codePointCount = [...segment].length;
-	const multiScalarMeaningful = codePointCount > 1 && !(codePointCount === 2 && hasVs15 && !hasVs16);
-
-	return multiScalarMeaningful;
 }
 
 function trailingHalfwidthWidth(segment, eastAsianWidthOptions) {
@@ -97,7 +72,7 @@ export default function stringWidth(input, options = {}) {
 		}
 
 		// Emoji width logic
-		if (rgiEmojiRegex.test(segment) && isDoubleWidthEmojiCluster(segment)) {
+		if (rgiEmojiRegex.test(segment)) {
 			width += 2;
 			continue;
 		}
