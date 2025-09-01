@@ -45,7 +45,7 @@ function isDoubleWidthEmojiCluster(segment) {
 	const hasVs15 = segment.includes('\uFE0E');
 
 	if (baseIsEmojiPresentation && !hasVs15) {
-		return true
+		return true;
 	}
 
 	const codePointCount = [...segment].length;
