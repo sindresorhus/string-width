@@ -7,7 +7,8 @@ Logic:
 - Width rules:
 	1. Skip non-printing clusters (Default_Ignorable, Control, pure Mark, lone Surrogates). Tabs are ignored by design.
 	2. RGI emoji clusters (\p{RGI_Emoji}) are double-width.
-	3. Otherwise use East Asian Width of the cluster’s first visible code point, and add widths for trailing Halfwidth/Fullwidth Forms within the same cluster (e.g., dakuten/handakuten/prolonged sound mark).
+	3. Minimally-qualified/unqualified emoji clusters (ZWJ sequences with 2+ Extended_Pictographic, or keycap sequences) are double-width.
+	4. Otherwise use East Asian Width of the cluster's first visible code point, and add widths for trailing Halfwidth/Fullwidth Forms within the same cluster (e.g., dakuten/handakuten/prolonged sound mark).
 */
 
 const segmenter = new Intl.Segmenter();
@@ -20,6 +21,30 @@ const leadingNonPrintingRegex = /^[\p{Default_Ignorable_Code_Point}\p{Control}\p
 
 // RGI emoji sequences
 const rgiEmojiRegex = /^\p{RGI_Emoji}$/v;
+
+// Detect minimally-qualified/unqualified emoji clusters (missing VS16)
+// - ZWJ sequences with 2+ Extended_Pictographic (e.g., ❤‍🔥, 🏳‍🌈, ⛹‍♂)
+// - Keycap sequences (e.g., #⃣, 0⃣)
+const zwjRegex = /\u200D/;
+const validKeycapRegex = /^[\d#*].*\u20E3/;
+const extendedPictographicRegex = /\p{Extended_Pictographic}/gu;
+
+function isDoubleWidthEmojiCluster(segment) {
+	// Keycap sequences with valid base (0-9, #, *)
+	if (validKeycapRegex.test(segment)) {
+		return true;
+	}
+
+	// ZWJ sequences with 2+ Extended_Pictographic
+	if (zwjRegex.test(segment)) {
+		const matches = segment.match(extendedPictographicRegex);
+		if (matches && matches.length >= 2) {
+			return true;
+		}
+	}
+
+	return false;
+}
 
 function baseVisible(segment) {
 	return segment.replace(leadingNonPrintingRegex, '');
@@ -72,7 +97,7 @@ export default function stringWidth(input, options = {}) {
 		}
 
 		// Emoji width logic
-		if (rgiEmojiRegex.test(segment)) {
+		if (rgiEmojiRegex.test(segment) || isDoubleWidthEmojiCluster(segment)) {
 			width += 2;
 			continue;
 		}
