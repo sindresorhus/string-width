@@ -22,25 +22,24 @@ const leadingNonPrintingRegex = /^[\p{Default_Ignorable_Code_Point}\p{Control}\p
 // RGI emoji sequences
 const rgiEmojiRegex = /^\p{RGI_Emoji}$/v;
 
-// Detect minimally-qualified/unqualified emoji clusters (missing VS16)
-// - ZWJ sequences with 2+ Extended_Pictographic (e.g., ❤‍🔥, 🏳‍🌈, ⛹‍♂)
-// - Keycap sequences (e.g., #⃣, 0⃣)
-const zwjRegex = /\u200D/;
-const validKeycapRegex = /^[\d#*].*\u20E3/;
+// Detect minimally-qualified/unqualified emoji sequences (missing VS16 but still render as double-width)
+const unqualifiedKeycapRegex = /^[\d#*]\u20E3$/;
 const extendedPictographicRegex = /\p{Extended_Pictographic}/gu;
 
-function isDoubleWidthEmojiCluster(segment) {
-	// Keycap sequences with valid base (0-9, #, *)
-	if (validKeycapRegex.test(segment)) {
+function isDoubleWidthNonRgiEmojiSequence(segment) {
+	// Real emoji clusters are < 30 chars; guard against pathological input
+	if (segment.length > 50) {
+		return false;
+	}
+
+	if (unqualifiedKeycapRegex.test(segment)) {
 		return true;
 	}
 
 	// ZWJ sequences with 2+ Extended_Pictographic
-	if (zwjRegex.test(segment)) {
-		const matches = segment.match(extendedPictographicRegex);
-		if (matches && matches.length >= 2) {
-			return true;
-		}
+	if (segment.includes('\u200D')) {
+		const pictographics = segment.match(extendedPictographicRegex);
+		return pictographics !== null && pictographics.length >= 2;
 	}
 
 	return false;
@@ -97,7 +96,7 @@ export default function stringWidth(input, options = {}) {
 		}
 
 		// Emoji width logic
-		if (rgiEmojiRegex.test(segment) || isDoubleWidthEmojiCluster(segment)) {
+		if (rgiEmojiRegex.test(segment) || isDoubleWidthNonRgiEmojiSequence(segment)) {
 			width += 2;
 			continue;
 		}
