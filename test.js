@@ -249,3 +249,23 @@ test('digit zero as plain text (not emoji)', macro, '0', 1);
 test('digit one as plain text', macro, '1', 1);
 test('asterisk as plain text', macro, '*', 1);
 test('hash as plain text', macro, '#', 1);
+
+// Minimally-qualified/unqualified emoji sequences
+// These are emoji sequences missing VS16 but should still be width 2
+test('heart on fire (MQ)', macro, '\u2764\u200D\u{1F525}', 2); // ❤‍🔥
+test('rainbow flag (MQ)', macro, '\u{1F3F3}\u200D\u{1F308}', 2); // 🏳‍🌈
+test('transgender flag (MQ)', macro, '\u{1F3F3}\u200D\u26A7', 2); // 🏳‍⚧
+test('broken chain (MQ)', macro, '\u26D3\u200D\u{1F4A5}', 2); // ⛓‍💥
+test('eye in speech bubble (MQ)', macro, '\u{1F441}\u200D\u{1F5E8}', 2); // 👁‍🗨
+test('man bouncing ball (MQ)', macro, '\u26F9\u200D\u2642', 2); // ⛹‍♂
+test('woman bouncing ball (MQ)', macro, '\u26F9\u200D\u2640', 2); // ⛹‍♀
+test('man detective (MQ)', macro, '\u{1F575}\u200D\u2642', 2); // 🕵‍♂
+test('woman detective (MQ)', macro, '\u{1F575}\u200D\u2640', 2); // 🕵‍♀
+
+// Unqualified keycap sequences (missing VS16)
+test('keycap # (UQ)', macro, '#\u20E3', 2); // #⃣
+test('keycap 0 (UQ)', macro, '0\u20E3', 2); // 0⃣
+test('keycap * (UQ)', macro, '*\u20E3', 2); // *⃣
+
+// Ensure invalid keycap sequences don't match
+test('phone + keycap (invalid)', macro, '\u260E\uFE0F\u20E3', 1); // Not a valid keycap base
