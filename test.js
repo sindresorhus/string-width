@@ -249,3 +249,8 @@ test('digit zero as plain text (not emoji)', macro, '0', 1);
 test('digit one as plain text', macro, '1', 1);
 test('asterisk as plain text', macro, '*', 1);
 test('hash as plain text', macro, '#', 1);
+
+// Unicode Format characters (non-default-ignorable)
+test('Arabic number sign U+0600', macro, '\u0600', 0);
+test('Arabic end of ayah U+06DD', macro, '\u06DD', 0);
+test('Syriac abbreviation mark U+070F', macro, '\u070F', 0);
