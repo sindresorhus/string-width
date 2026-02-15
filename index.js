@@ -78,12 +78,18 @@ export default function stringWidth(input, options = {}) {
 
 	let string = input;
 
-	if (!countAnsiEscapeCodes) {
+	// Avoid calling stripAnsi when there are no ANSI escape sequences (ESC = 0x1B, CSI = 0x9B)
+	if (!countAnsiEscapeCodes && (string.includes('\u001B') || string.includes('\u009B'))) {
 		string = stripAnsi(string);
 	}
 
 	if (string.length === 0) {
 		return 0;
+	}
+
+	// Fast path: printable ASCII (0x20–0x7E) needs no segmenter, regex, or EAW lookup — width equals length.
+	if (/^[\u0020-\u007E]*$/.test(string)) {
+		return string.length;
 	}
 
 	let width = 0;
