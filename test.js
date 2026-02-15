@@ -274,3 +274,35 @@ test('keycap * (UQ)', macro, '*\u20E3', 2); // *⃣
 
 // Ensure invalid keycap sequences don't match
 test('phone + keycap (invalid)', macro, '\u260E\uFE0F\u20E3', 1); // Not a valid keycap base
+
+// Latin1 range (0xA0–0x2FF) — width 1, no segmenter or EAW lookup needed
+test('non-breaking space U+00A0', macro, '\u00A0', 1);
+test('Latin ñ U+00F1', macro, 'ñ', 1);
+test('Latin ü U+00FC', macro, 'ü', 1);
+test('Latin ÿ U+00FF', macro, 'ÿ', 1);
+test('Latin1 in text', macro, 'café', 4);
+test('Spacing Modifier U+02FF', macro, '\u02FF', 1);
+
+// Soft hyphen (0xAD) — zero-width
+test('soft hyphen U+00AD', macro, '\u00AD', 0);
+test('soft hyphen in text', macro, 'a\u00ADb', 2);
+
+// Combining diacritical boundary (0x300) — zero-width combining mark
+test('combining grave U+0300 alone', macro, '\u0300', 0);
+test('char + combining at 0x300 boundary', macro, 'a\u0300', 1);
+
+// ASCII boundary characters
+test('space U+0020 (lowest printable ASCII)', macro, ' ', 1);
+test('tilde U+007E (highest printable ASCII)', macro, '~', 1);
+test('DEL U+007F (just above printable ASCII)', macro, '\u007F', 0);
+test('unit separator U+001F (just below printable ASCII)', macro, '\u001F', 0);
+
+// Ambiguous characters
+test('ambiguous in text (narrow default)', macro, '±×÷', 3);
+test('ambiguous in text (wide)', macro, '±×÷', 6, {ambiguousIsNarrow: false});
+test('ambiguous mixed with CJK', macro, '±你', 3);
+test('ambiguous mixed with CJK (wide)', macro, '±你', 4, {ambiguousIsNarrow: false});
+
+// StripAnsi guard: non-ANSI strings should not call stripAnsi
+test('non-ASCII without ANSI escapes', macro, '你好世界', 8);
+test('Latin1 without ANSI escapes', macro, 'résumé', 6);
