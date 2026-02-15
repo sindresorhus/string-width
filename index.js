@@ -54,12 +54,28 @@ export default function stringWidth(input, options = {}) {
 
 	let string = input;
 
-	if (!countAnsiEscapeCodes) {
+	// Avoid calling stripAnsi when there are no ANSI escape sequences (ESC = 0x1B)
+	if (!countAnsiEscapeCodes && string.includes('\u001B')) {
 		string = stripAnsi(string);
 	}
 
 	if (string.length === 0) {
 		return 0;
+	}
+
+	// Fast path: printable ASCII (0x20–0x7E) needs no segmenter, regex, or EAW lookup — width equals length.
+	// This covers the majority of real-world terminal strings (log messages, CLI output, prompts).
+	let isAscii = true;
+	for (let index = 0; index < string.length; index += 1) {
+		const code = string.codePointAt(index);
+		if (code < 32 || code > 126) {
+			isAscii = false;
+			break;
+		}
+	}
+
+	if (isAscii) {
+		return string.length;
 	}
 
 	let width = 0;
