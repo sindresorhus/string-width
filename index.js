@@ -7,7 +7,8 @@ Logic:
 - Width rules:
 	1. Skip non-printing clusters (Default_Ignorable, Control, pure Mark, lone Surrogates). Tabs are ignored by design.
 	2. RGI emoji clusters (\p{RGI_Emoji}) are double-width.
-	3. Otherwise use East Asian Width of the cluster’s first visible code point, and add widths for trailing Halfwidth/Fullwidth Forms within the same cluster (e.g., dakuten/handakuten/prolonged sound mark).
+	3. Minimally-qualified/unqualified emoji clusters (ZWJ sequences with 2+ Extended_Pictographic, or keycap sequences) are double-width.
+	4. Otherwise use East Asian Width of the cluster's first visible code point, and add widths for trailing Halfwidth/Fullwidth Forms within the same cluster (e.g., dakuten/handakuten/prolonged sound mark).
 */
 
 const segmenter = new Intl.Segmenter();
@@ -20,6 +21,29 @@ const leadingNonPrintingRegex = /^[\p{Default_Ignorable_Code_Point}\p{Control}\p
 
 // RGI emoji sequences
 const rgiEmojiRegex = /^\p{RGI_Emoji}$/v;
+
+// Detect minimally-qualified/unqualified emoji sequences (missing VS16 but still render as double-width)
+const unqualifiedKeycapRegex = /^[\d#*]\u20E3$/;
+const extendedPictographicRegex = /\p{Extended_Pictographic}/gu;
+
+function isDoubleWidthNonRgiEmojiSequence(segment) {
+	// Real emoji clusters are < 30 chars; guard against pathological input
+	if (segment.length > 50) {
+		return false;
+	}
+
+	if (unqualifiedKeycapRegex.test(segment)) {
+		return true;
+	}
+
+	// ZWJ sequences with 2+ Extended_Pictographic
+	if (segment.includes('\u200D')) {
+		const pictographics = segment.match(extendedPictographicRegex);
+		return pictographics !== null && pictographics.length >= 2;
+	}
+
+	return false;
+}
 
 function baseVisible(segment) {
 	return segment.replace(leadingNonPrintingRegex, '');
@@ -72,7 +96,7 @@ export default function stringWidth(input, options = {}) {
 		}
 
 		// Emoji width logic
-		if (rgiEmojiRegex.test(segment)) {
+		if (rgiEmojiRegex.test(segment) || isDoubleWidthNonRgiEmojiSequence(segment)) {
 			width += 2;
 			continue;
 		}
