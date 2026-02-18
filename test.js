@@ -303,6 +303,6 @@ test('ambiguous in text (wide)', macro, '±×÷', 6, {ambiguousIsNarrow: false})
 test('ambiguous mixed with CJK', macro, '±你', 3);
 test('ambiguous mixed with CJK (wide)', macro, '±你', 4, {ambiguousIsNarrow: false});
 
-// StripAnsi guard: non-ANSI strings should not call stripAnsi
+// `stripAnsi` guard: non-ANSI strings should not call `stripAnsi`
 test('non-ASCII without ANSI escapes', macro, '你好世界', 8);
 test('Latin1 without ANSI escapes', macro, 'résumé', 6);
