@@ -1,4 +1,4 @@
-import stripAnsi from 'strip-ansi';
+import {stripVTControlCharacters} from 'node:util';
 import {eastAsianWidth} from 'get-east-asian-width';
 
 /**
@@ -78,9 +78,9 @@ export default function stringWidth(input, options = {}) {
 
 	let string = input;
 
-	// Avoid calling stripAnsi when there are no ANSI escape sequences (ESC = 0x1B, CSI = 0x9B)
+	// Avoid calling stripVTControlCharacters when there are no ANSI escape sequences (ESC = 0x1B, CSI = 0x9B)
 	if (!countAnsiEscapeCodes && (string.includes('\u001B') || string.includes('\u009B'))) {
-		string = stripAnsi(string);
+		string = stripVTControlCharacters(string);
 	}
 
 	if (string.length === 0) {

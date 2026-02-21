@@ -54,8 +54,7 @@
 		"east-asian-width"
 	],
 	"dependencies": {
-		"get-east-asian-width": "^1.5.0",
-		"strip-ansi": "^7.1.2"
+		"get-east-asian-width": "^1.5.0"
 	},
 	"devDependencies": {
 		"ava": "^6.4.1",
