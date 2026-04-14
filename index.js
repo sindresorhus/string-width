@@ -8,7 +8,9 @@ Logic:
 	1. Skip non-printing clusters (Default_Ignorable, Control, pure Mark, lone Surrogates). Tabs are ignored by design.
 	2. RGI emoji clusters (\p{RGI_Emoji}) are double-width.
 	3. Minimally-qualified/unqualified emoji clusters (ZWJ sequences with 2+ Extended_Pictographic, or keycap sequences) are double-width.
-	4. Otherwise use East Asian Width of the cluster's first visible code point, and add widths for trailing Halfwidth/Fullwidth Forms within the same cluster (e.g., dakuten/handakuten/prolonged sound mark).
+	4. Hangul jamo collapse each standard modern Hangul L+V or L+V+T syllable piece to width 2.
+	   Unmatched repeated leading/vowel/trailing jamo stay additive because that matches how the terminals we target render them.
+	5. Otherwise use East Asian Width of the cluster's first visible code point, and add widths for trailing Halfwidth/Fullwidth Forms within the same cluster (e.g., dakuten/handakuten/prolonged sound mark).
 */
 
 const segmenter = new Intl.Segmenter();
@@ -53,13 +55,88 @@ function isZeroWidthCluster(segment) {
 	return zeroWidthClusterRegex.test(segment);
 }
 
-function trailingHalfwidthWidth(segment, eastAsianWidthOptions) {
-	let extra = 0;
-	if (segment.length > 1) {
-		for (const char of segment.slice(1)) {
-			if (char >= '\uFF00' && char <= '\uFFEF') {
-				extra += eastAsianWidth(char.codePointAt(0), eastAsianWidthOptions);
+function isHangulLeadingJamo(codePoint) {
+	return (codePoint >= 0x11_00 && codePoint <= 0x11_5F)
+		|| (codePoint >= 0xA9_60 && codePoint <= 0xA9_7C);
+}
+
+function isHangulVowelJamo(codePoint) {
+	return (codePoint >= 0x11_60 && codePoint <= 0x11_A7)
+		|| (codePoint >= 0xD7_B0 && codePoint <= 0xD7_C6);
+}
+
+function isHangulTrailingJamo(codePoint) {
+	return (codePoint >= 0x11_A8 && codePoint <= 0x11_FF)
+		|| (codePoint >= 0xD7_CB && codePoint <= 0xD7_FB);
+}
+
+function isHangulJamo(codePoint) {
+	return isHangulLeadingJamo(codePoint)
+		|| isHangulVowelJamo(codePoint)
+		|| isHangulTrailingJamo(codePoint);
+}
+
+function hangulClusterWidth(visibleSegment, eastAsianWidthOptions) {
+	const codePoints = [];
+
+	for (const character of visibleSegment) {
+		if (zeroWidthClusterRegex.test(character)) {
+			continue;
+		}
+
+		codePoints.push(character.codePointAt(0));
+	}
+
+	if (codePoints.length === 0) {
+		return undefined;
+	}
+
+	let width = 0;
+
+	for (let index = 0; index < codePoints.length; index++) {
+		const codePoint = codePoints[index];
+		if (!isHangulJamo(codePoint)) {
+			if (width === 0) {
+				return undefined;
 			}
+
+			// Mixed cluster (e.g., L + precomposed syllable): use EAW for non-jamo remainder
+			for (let remaining = index; remaining < codePoints.length; remaining++) {
+				width += eastAsianWidth(codePoints[remaining], eastAsianWidthOptions);
+			}
+
+			return width;
+		}
+
+		// Modern Hangul L+V(+T) shapes as one syllable block. Unmatched jamo stay additive:
+		// U+1100 U+1100 U+1161 => U+1100 + (U+1100 U+1161) => 2 + 2.
+		if (
+			isHangulLeadingJamo(codePoint)
+			&& isHangulVowelJamo(codePoints[index + 1])
+		) {
+			width += 2;
+			index += isHangulTrailingJamo(codePoints[index + 2]) ? 2 : 1;
+			continue;
+		}
+
+		width += eastAsianWidth(codePoint, eastAsianWidthOptions);
+	}
+
+	return width;
+}
+
+function trailingHalfwidthWidth(visibleSegment, eastAsianWidthOptions) {
+	let extra = 0;
+	let first = true;
+
+	for (const character of visibleSegment) {
+		if (first) {
+			first = false;
+			continue;
+		}
+
+		if (character >= '\uFF00' && character <= '\uFFEF') {
+			extra += eastAsianWidth(character.codePointAt(0), eastAsianWidthOptions);
 		}
 	}
 
@@ -107,12 +184,19 @@ export default function stringWidth(input, options = {}) {
 			continue;
 		}
 
+		const visibleSegment = baseVisible(segment);
+		const hangulWidth = hangulClusterWidth(visibleSegment, eastAsianWidthOptions);
+		if (hangulWidth !== undefined) {
+			width += hangulWidth;
+			continue;
+		}
+
 		// Everything else: EAW of the cluster’s first visible scalar
-		const codePoint = baseVisible(segment).codePointAt(0);
+		const codePoint = visibleSegment.codePointAt(0);
 		width += eastAsianWidth(codePoint, eastAsianWidthOptions);
 
 		// Add width for trailing Halfwidth and Fullwidth Forms (e.g., ﾞ, ﾟ, ｰ)
-		width += trailingHalfwidthWidth(segment, eastAsianWidthOptions);
+		width += trailingHalfwidthWidth(visibleSegment, eastAsianWidthOptions);
 	}
 
 	return width;

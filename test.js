@@ -25,6 +25,32 @@ test('non-string input (undefined)', t => {
 test('full-width characters', macro, '你好', 4);
 test('half-width characters', macro, 'hello', 5);
 test('mixed width', macro, 'hello世界', 9);
+test('repeated leading Hangul jamo in one grapheme cluster stay additive', macro, 'ᄀᄀ', 4);
+test('long leading Hangul jamo cluster stays additive', macro, 'ᄀᄀᄀᄀᄀᄀ', 12);
+test('decomposed Hangul syllable cluster', macro, '가', 2);
+test('decomposed Hangul syllable cluster with trailing jamo', macro, '각', 2);
+test('decomposed Hangul syllable cluster with variation selector', macro, '가\uFE0F', 2);
+test('repeated leading jamo before vowel composes last pair', macro, 'ᄀ가', 4);
+test('repeated vowel jamo after leading composes first pair', macro, '가ᅡ', 3);
+test('repeated trailing jamo after syllable composes first three', macro, '각ᆨ', 3);
+test('repeated leading Hangul jamo with variation selector stay additive', macro, 'ᄀᄀ\uFE0F', 4);
+test('repeated leading Hangul jamo with trailing ZWJ stay additive', macro, 'ᄀᄀ\u200D', 4);
+test('vowel-only Hangul jamo cluster stays additive', macro, 'ᅡᅡᅡ', 3);
+test('trailing-only Hangul jamo cluster stays additive', macro, 'ᆨᆨ', 2);
+test('single leading jamo alone is width 2', macro, 'ᄀ', 2);
+test('single vowel jamo alone is width 1', macro, 'ᅡ', 1);
+test('single trailing jamo alone is width 1', macro, 'ᆨ', 1);
+test('vowel jamo before leading jamo does not compose', macro, 'ᅡᄀ', 3);
+test('leading jamo followed by trailing jamo without vowel does not compose', macro, 'ᄀᆨ', 3);
+test('extended leading jamo U+A960 + standard vowel composes to width 2', macro, 'ꥠᅡ', 2);
+test('standard leading jamo + extended vowel U+D7B0 composes to width 2', macro, 'ᄀힰ', 2);
+test('extended leading + standard vowel + standard trailing composes to width 2', macro, 'ꥠᅡᆨ', 2);
+test('Hangul Compatibility Jamo is full-width via EAW', macro, 'ㄱ', 2);
+test('two Hangul Compatibility Jamo do not compose', macro, 'ㄱㄱ', 4);
+test('precomposed syllable 가 U+AC00', macro, '가', 2);
+test('precomposed syllable 한 U+D55C', macro, '한', 2);
+test('three precomposed syllables', macro, '한국어', 6);
+test('leading jamo + precomposed syllable in one cluster', macro, 'ᄀ가', 4);
 
 // Halfwidth Katakana with dakuten/handakuten (issue #55)
 test('halfwidth kana voiced sound mark (ba)', macro, 'ﾊﾞ', 2);
