@@ -5,21 +5,22 @@ import {eastAsianWidth} from 'get-east-asian-width';
 Logic:
 - Segment graphemes to match how terminals render clusters.
 - Width rules:
-	1. Skip non-printing clusters (Default_Ignorable, Control, pure Mark, lone Surrogates). Tabs are ignored by design.
+	1. Skip non-printing clusters (Default_Ignorable, Control, pure nonspacing/enclosing Mark, lone Surrogates). Tabs are ignored by design.
 	2. RGI emoji clusters (\p{RGI_Emoji}) are double-width.
 	3. Minimally-qualified/unqualified emoji clusters (ZWJ sequences with 2+ Extended_Pictographic, or keycap sequences) are double-width.
 	4. Hangul jamo collapse each standard modern Hangul L+V or L+V+T syllable piece to width 2.
 	   Unmatched repeated leading/vowel/trailing jamo stay additive because that matches how the terminals we target render them.
-	5. Otherwise use East Asian Width of the cluster's first visible code point, and add widths for trailing Halfwidth/Fullwidth Forms within the same cluster (e.g., dakuten/handakuten/prolonged sound mark).
+	5. Otherwise use East Asian Width of the cluster's first visible code point, and add widths for trailing spacing marks and Halfwidth/Fullwidth Forms within the same cluster (e.g., dakuten/handakuten/prolonged sound mark).
 */
 
 const segmenter = new Intl.Segmenter();
 
 // Whole-cluster zero-width
-const zeroWidthClusterRegex = /^(?:\p{Default_Ignorable_Code_Point}|\p{Control}|\p{Format}|\p{Mark}|\p{Surrogate})+$/v;
+const zeroWidthClusterRegex = /^(?:\p{Default_Ignorable_Code_Point}|\p{Control}|\p{Format}|\p{Nonspacing_Mark}|\p{Enclosing_Mark}|\p{Surrogate})+$/v;
 
 // Pick the base scalar if the cluster starts with Prepend/Format/Marks
-const leadingNonPrintingRegex = /^[\p{Default_Ignorable_Code_Point}\p{Control}\p{Format}\p{Mark}\p{Surrogate}]+/v;
+const leadingNonPrintingRegex = /^[\p{Default_Ignorable_Code_Point}\p{Control}\p{Format}\p{Nonspacing_Mark}\p{Enclosing_Mark}\p{Surrogate}]+/v;
+const spacingMarkRegex = /\p{Spacing_Mark}/v;
 
 // RGI emoji sequences
 const rgiEmojiRegex = /^\p{RGI_Emoji}$/v;
@@ -125,7 +126,7 @@ function hangulClusterWidth(visibleSegment, eastAsianWidthOptions) {
 	return width;
 }
 
-function trailingHalfwidthWidth(visibleSegment, eastAsianWidthOptions) {
+function trailingWidth(visibleSegment, eastAsianWidthOptions) {
 	let extra = 0;
 	let first = true;
 
@@ -135,7 +136,10 @@ function trailingHalfwidthWidth(visibleSegment, eastAsianWidthOptions) {
 			continue;
 		}
 
-		if (character >= '\uFF00' && character <= '\uFFEF') {
+		if (
+			spacingMarkRegex.test(character)
+			|| (character >= '\uFF00' && character <= '\uFFEF')
+		) {
 			extra += eastAsianWidth(character.codePointAt(0), eastAsianWidthOptions);
 		}
 	}
@@ -195,8 +199,8 @@ export default function stringWidth(input, options = {}) {
 		const codePoint = visibleSegment.codePointAt(0);
 		width += eastAsianWidth(codePoint, eastAsianWidthOptions);
 
-		// Add width for trailing Halfwidth and Fullwidth Forms (e.g., ﾞ, ﾟ, ｰ)
-		width += trailingHalfwidthWidth(visibleSegment, eastAsianWidthOptions);
+		// Add width for trailing spacing marks and Halfwidth/Fullwidth Forms (e.g., ﾞ, ﾟ, ｰ)
+		width += trailingWidth(visibleSegment, eastAsianWidthOptions);
 	}
 
 	return width;
