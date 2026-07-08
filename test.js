@@ -101,6 +101,10 @@ test('Indic conjunct via ZWJ', macro, 'क्\u200Dष', 1);
 test('combining diacritical mark', macro, 'e\u0301', 1);
 test('multiple combining marks', macro, 'e\u0301\u0302', 1);
 test('combining marks only', macro, '\u0301\u0302', 0);
+test('Tibetan combining mark', macro, 'ཟླ', 1);
+test('enclosing mark', macro, 'a\u20DD', 1);
+test('spacing mark alone', macro, '\u093E', 1);
+test('spacing mark after base character', macro, '\u0915\u093E', 2);
 
 // Surrogate pairs and high code points
 test('emoji surrogate pair', macro, '😀', 2);
