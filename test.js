@@ -105,6 +105,7 @@ test('Tibetan combining mark', macro, 'ཟླ', 1);
 test('enclosing mark', macro, 'a\u20DD', 1);
 test('spacing mark alone', macro, '\u093E', 1);
 test('spacing mark after base character', macro, '\u0915\u093E', 2);
+test('pre-base spacing mark after base character', macro, '\u0915\u093F', 2);
 
 // Surrogate pairs and high code points
 test('emoji surrogate pair', macro, '😀', 2);
