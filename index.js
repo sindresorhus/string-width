@@ -48,6 +48,10 @@ function isDoubleWidthNonRgiEmojiSequence(segment) {
 	return false;
 }
 
+function isPrintableAscii(codePoint) {
+	return codePoint >= 0x20 && codePoint <= 0x7E;
+}
+
 function baseVisible(segment) {
 	return segment.replace(leadingNonPrintingRegex, '');
 }
@@ -177,6 +181,12 @@ export default function stringWidth(input, options = {}) {
 	const eastAsianWidthOptions = {ambiguousAsWide: !ambiguousIsNarrow};
 
 	for (const {segment} of segmenter.segment(string)) {
+		// A lone printable ASCII character is always width 1, so skip the cluster checks
+		if (segment.length === 1 && isPrintableAscii(segment.codePointAt(0))) {
+			width += 1;
+			continue;
+		}
+
 		// Zero-width / non-printing clusters
 		if (isZeroWidthCluster(segment)) {
 			continue;
