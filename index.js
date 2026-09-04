@@ -158,40 +158,69 @@ function trailingWidth(visibleSegment, eastAsianWidthOptions) {
 	return extra;
 }
 
+function clusterWidth(segment, eastAsianWidthOptions) {
+	// Zero-width / non-printing clusters
+	if (isZeroWidthCluster(segment)) {
+		return 0;
+	}
+
+	// Emoji width logic
+	if (rgiEmojiRegex.test(segment) || isDoubleWidthNonRgiEmojiSequence(segment)) {
+		return 2;
+	}
+
+	const visibleSegment = baseVisible(segment);
+	const hangulWidth = hangulClusterWidth(visibleSegment, eastAsianWidthOptions);
+	if (hangulWidth !== undefined) {
+		return hangulWidth;
+	}
+
+	// Everything else: EAW of the cluster’s first visible scalar, plus trailing spacing marks and Halfwidth/Fullwidth Forms (e.g., ﾞ, ﾟ, ｰ)
+	const codePoint = visibleSegment.codePointAt(0);
+	return eastAsianWidth(codePoint, eastAsianWidthOptions) + trailingWidth(visibleSegment, eastAsianWidthOptions);
+}
+
+// The width of a single code point cluster depends only on the code point and the ambiguous width option, so cache it per option
+const narrowCodePointWidths = new Map();
+const wideCodePointWidths = new Map();
+const maximumCachedCodePoints = 2048;
+
+function codePointWidth(codePoint, eastAsianWidthOptions) {
+	const cache = eastAsianWidthOptions.ambiguousAsWide ? wideCodePointWidths : narrowCodePointWidths;
+	let width = cache.get(codePoint);
+
+	if (width === undefined) {
+		width = clusterWidth(String.fromCodePoint(codePoint), eastAsianWidthOptions);
+
+		if (cache.size >= maximumCachedCodePoints) {
+			cache.clear();
+		}
+
+		cache.set(codePoint, width);
+	}
+
+	return width;
+}
+
 function segmentedWidth(string, eastAsianWidthOptions) {
 	let width = 0;
 
 	for (const {segment} of segmenter.segment(string)) {
+		const codePoint = segment.codePointAt(0);
+
 		// A lone printable ASCII character is always width 1, so skip the cluster checks
-		if (segment.length === 1 && isPrintableAscii(segment.codePointAt(0))) {
+		if (segment.length === 1 && isPrintableAscii(codePoint)) {
 			width += 1;
 			continue;
 		}
 
-		// Zero-width / non-printing clusters
-		if (isZeroWidthCluster(segment)) {
+		// Single code point clusters are by far the most common and repeat a lot, so use the cache
+		if (segment.length === (codePoint > 0xFF_FF ? 2 : 1)) {
+			width += codePointWidth(codePoint, eastAsianWidthOptions);
 			continue;
 		}
 
-		// Emoji width logic
-		if (rgiEmojiRegex.test(segment) || isDoubleWidthNonRgiEmojiSequence(segment)) {
-			width += 2;
-			continue;
-		}
-
-		const visibleSegment = baseVisible(segment);
-		const hangulWidth = hangulClusterWidth(visibleSegment, eastAsianWidthOptions);
-		if (hangulWidth !== undefined) {
-			width += hangulWidth;
-			continue;
-		}
-
-		// Everything else: EAW of the cluster’s first visible scalar
-		const codePoint = visibleSegment.codePointAt(0);
-		width += eastAsianWidth(codePoint, eastAsianWidthOptions);
-
-		// Add width for trailing spacing marks and Halfwidth/Fullwidth Forms (e.g., ﾞ, ﾟ, ｰ)
-		width += trailingWidth(visibleSegment, eastAsianWidthOptions);
+		width += clusterWidth(segment, eastAsianWidthOptions);
 	}
 
 	return width;
