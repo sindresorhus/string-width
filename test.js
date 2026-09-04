@@ -337,3 +337,19 @@ test('ambiguous mixed with CJK (wide)', macro, '±你', 4, {ambiguousIsNarrow: f
 // `stripAnsi` guard: non-ANSI strings should not call `stripAnsi`
 test('non-ASCII without ANSI escapes', macro, '你好世界', 8);
 test('Latin1 without ANSI escapes', macro, 'résumé', 6);
+
+// ASCII runs are counted without segmenting; characters at the edges of a run may still join a cluster
+test('long ASCII with trailing emoji', macro, 'a'.repeat(40) + '😀', 42);
+test('long ASCII with leading emoji', macro, '😀' + 'a'.repeat(40), 42);
+test('emoji between long ASCII runs', macro, 'a'.repeat(40) + '😀' + 'b'.repeat(40), 82);
+test('emoji between short ASCII runs', macro, '😀 ok 😀', 8);
+test('combining mark after long ASCII run', macro, 'a'.repeat(40) + '\u0301', 40);
+test('combining mark between long ASCII runs', macro, 'a'.repeat(40) + '\u0301' + 'b'.repeat(40), 80);
+test('ZWJ after long ASCII run', macro, 'a'.repeat(40) + '\u200D\u200D', 40);
+test('prepend before long ASCII run', macro, '\u0600' + 'a'.repeat(40), 40);
+test('keycap at the end of a long ASCII run', macro, 'a'.repeat(40) + '#\u20E3', 42);
+test('keycap between long ASCII runs', macro, 'a'.repeat(40) + '#\uFE0F\u20E3' + 'b'.repeat(40), 82);
+test('CJK between long ASCII runs', macro, 'a'.repeat(40) + '你好' + 'b'.repeat(40), 84);
+test('ambiguous between long ASCII runs (wide)', macro, 'a'.repeat(40) + '±' + 'b'.repeat(40), 82, {ambiguousIsNarrow: false});
+test('tab between long ASCII runs', macro, 'a'.repeat(40) + '\t' + 'b'.repeat(40), 80);
+test('ANSI codes around long ASCII with emoji', macro, '\u001B[32m' + 'a'.repeat(40) + ' ✅\u001B[0m', 43);

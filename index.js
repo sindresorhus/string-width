@@ -4,6 +4,7 @@ import {eastAsianWidth} from 'get-east-asian-width';
 /**
 Logic:
 - Segment graphemes to match how terminals render clusters.
+- Runs of printable ASCII are counted without segmenting; only the text around other characters is segmented.
 - Width rules:
 	1. Skip non-printing clusters (Default_Ignorable, Control, pure nonspacing/enclosing Mark, lone Surrogates). Tabs are ignored by design.
 	2. RGI emoji clusters (\p{RGI_Emoji}) are double-width.
@@ -47,6 +48,12 @@ function isDoubleWidthNonRgiEmojiSequence(segment) {
 
 	return false;
 }
+
+// Printable ASCII (0x20–0x7E) is always width 1, and two adjacent printable ASCII characters never share a grapheme cluster
+const printableAsciiRunRegex = /[\u0020-\u007E]+/g;
+
+// Segmenting a slice costs about as much as classifying a dozen ASCII clusters, so a run in the middle of the string is only skipped when it is long enough to pay for the extra slice
+const minimumInnerRunLength = 16;
 
 function isPrintableAscii(codePoint) {
 	return codePoint >= 0x20 && codePoint <= 0x7E;
@@ -151,34 +158,8 @@ function trailingWidth(visibleSegment, eastAsianWidthOptions) {
 	return extra;
 }
 
-export default function stringWidth(input, options = {}) {
-	if (typeof input !== 'string' || input.length === 0) {
-		return 0;
-	}
-
-	const {
-		ambiguousIsNarrow = true,
-		countAnsiEscapeCodes = false,
-	} = options;
-
-	let string = input;
-
-	// Avoid calling stripAnsi when there are no ANSI escape sequences (ESC = 0x1B, CSI = 0x9B)
-	if (!countAnsiEscapeCodes && (string.includes('\u001B') || string.includes('\u009B'))) {
-		string = stripAnsi(string);
-	}
-
-	if (string.length === 0) {
-		return 0;
-	}
-
-	// Fast path: printable ASCII (0x20–0x7E) needs no segmenter, regex, or EAW lookup — width equals length.
-	if (/^[\u0020-\u007E]*$/.test(string)) {
-		return string.length;
-	}
-
+function segmentedWidth(string, eastAsianWidthOptions) {
 	let width = 0;
-	const eastAsianWidthOptions = {ambiguousAsWide: !ambiguousIsNarrow};
 
 	for (const {segment} of segmenter.segment(string)) {
 		// A lone printable ASCII character is always width 1, so skip the cluster checks
@@ -211,6 +192,71 @@ export default function stringWidth(input, options = {}) {
 
 		// Add width for trailing spacing marks and Halfwidth/Fullwidth Forms (e.g., ﾞ, ﾟ, ｰ)
 		width += trailingWidth(visibleSegment, eastAsianWidthOptions);
+	}
+
+	return width;
+}
+
+export default function stringWidth(input, options = {}) {
+	if (typeof input !== 'string' || input.length === 0) {
+		return 0;
+	}
+
+	const {
+		ambiguousIsNarrow = true,
+		countAnsiEscapeCodes = false,
+	} = options;
+
+	let string = input;
+
+	// Avoid calling stripAnsi when there are no ANSI escape sequences (ESC = 0x1B, CSI = 0x9B)
+	if (!countAnsiEscapeCodes && (string.includes('\u001B') || string.includes('\u009B'))) {
+		string = stripAnsi(string);
+	}
+
+	if (string.length === 0) {
+		return 0;
+	}
+
+	// Fast path: printable ASCII (0x20–0x7E) needs no segmenter, regex, or EAW lookup — width equals length.
+	if (/^[\u0020-\u007E]*$/.test(string)) {
+		return string.length;
+	}
+
+	const {length} = string;
+	const eastAsianWidthOptions = {ambiguousAsWide: !ambiguousIsNarrow};
+
+	let width = 0;
+
+	// Start of the text that still has to be segmented
+	let pendingStart = 0;
+
+	// Printable ASCII runs inside other text are counted the same way; only the text around other
+	// characters is segmented. The first and last character of a run may still join a cluster with a
+	// neighbouring character (combining marks, ZWJ, keycaps, prepends), so they are left to the
+	// segmenter unless the run touches the start or end of the string.
+	printableAsciiRunRegex.lastIndex = 0;
+	for (let match = printableAsciiRunRegex.exec(string); match !== null; match = printableAsciiRunRegex.exec(string)) {
+		const runStart = match.index;
+		const runEnd = printableAsciiRunRegex.lastIndex;
+		const skipStart = runStart === 0 ? 0 : runStart + 1;
+		const skipEnd = runEnd === length ? length : runEnd - 1;
+		const isInnerRun = runStart > 0 && runEnd < length;
+
+		if (skipEnd <= skipStart || (isInnerRun && skipEnd - skipStart < minimumInnerRunLength)) {
+			continue;
+		}
+
+		if (skipStart > pendingStart) {
+			width += segmentedWidth(string.slice(pendingStart, skipStart), eastAsianWidthOptions);
+		}
+
+		width += skipEnd - skipStart;
+		pendingStart = skipEnd;
+	}
+
+	if (pendingStart < length) {
+		width += segmentedWidth(pendingStart === 0 ? string : string.slice(pendingStart), eastAsianWidthOptions);
 	}
 
 	return width;
