@@ -1,5 +1,5 @@
 import test from 'ava';
-import stringWidth from './index.js';
+import stringWidth, {_standaloneRanges as standaloneRanges} from './index.js';
 
 const macro = test.macro((t, input, expected, options = {}) => {
 	t.is(stringWidth(input, options), expected);
@@ -353,3 +353,189 @@ test('CJK between long ASCII runs', macro, 'a'.repeat(40) + '你好' + 'b'.repea
 test('ambiguous between long ASCII runs (wide)', macro, 'a'.repeat(40) + '±' + 'b'.repeat(40), 82, {ambiguousIsNarrow: false});
 test('tab between long ASCII runs', macro, 'a'.repeat(40) + '\t' + 'b'.repeat(40), 80);
 test('ANSI codes around long ASCII with emoji', macro, '\u001B[32m' + 'a'.repeat(40) + ' ✅\u001B[0m', 43);
+
+// Standalone character runs: characters that never join a neighbouring cluster are counted without the segmenter,
+// while the first and last character of a run stay with the segmenter
+test('accented letter with combining mark', macro, 'é\u0301', 1);
+test('accented word with combining mark', macro, 'café\u0301', 4);
+test('long accented run with trailing combining mark', macro, 'é'.repeat(40) + '\u0301', 40);
+test('long accented run with trailing combining mark (ambiguous wide)', macro, 'é'.repeat(40) + '\u0301', 80, {ambiguousIsNarrow: false});
+test('combining mark between accented runs', macro, 'é'.repeat(20) + '\u0301' + 'ñ'.repeat(20), 40);
+test('combining mark between accented runs (ambiguous wide)', macro, 'é'.repeat(20) + '\u0301' + 'ñ'.repeat(20), 60, {ambiguousIsNarrow: false});
+test('CJK with VS16', macro, '你\uFE0F', 2);
+test('CJK run with trailing VS15', macro, '你好世界'.repeat(5) + '\uFE0E', 40);
+test('VS16 between CJK runs', macro, '你'.repeat(20) + '\uFE0F' + '好'.repeat(20), 80);
+test('precomposed syllable with trailing jamo', macro, '가\u11A8', 2);
+test('syllable run with trailing jamo', macro, '가'.repeat(20) + '\u11A8', 40);
+test('leading jamo before syllable run', macro, '\u1100' + '가'.repeat(20), 42);
+test('precomposed syllable with vowel jamo', macro, '가\u1161', 2);
+test('emoji modifier after CJK', macro, '你\u{1F3FD}', 2);
+test('emoji modifier between CJK runs', macro, '你'.repeat(20) + '\u{1F3FD}' + '好'.repeat(20), 80);
+test('halfwidth kana run with voiced sound mark', macro, 'ｶ'.repeat(20) + '\uFF9E', 21);
+test('hiragana run with combining dakuten', macro, 'か'.repeat(20) + '\u3099', 40);
+test('Cyrillic run with combining mark', macro, 'ж'.repeat(20) + '\u0483', 20);
+test('Cyrillic run with combining mark (ambiguous wide)', macro, 'ж'.repeat(20) + '\u0483', 40, {ambiguousIsNarrow: false});
+test('Greek run with combining mark', macro, 'α'.repeat(20) + '\u0345', 20);
+test('copyright ZWJ copyright', macro, '©\u200D©', 2);
+test('copyright run', macro, '©'.repeat(20), 20);
+test('soft hyphen between Latin runs', macro, 'a'.repeat(20) + '\u00AD' + 'b'.repeat(20), 40);
+test('Hangul filler between compatibility jamo runs', macro, 'ㄱ'.repeat(20) + '\u3164' + 'ㄴ'.repeat(20), 80);
+test('CJK Extension B run', macro, '\u{20000}'.repeat(20), 40);
+test('CJK Extension B run with combining mark', macro, '\u{20000}'.repeat(20) + '\u0301', 40);
+test('combining mark before CJK Extension B run', macro, '\u0301' + '\u{20000}'.repeat(20), 40);
+test('CJK Extension B run between combining marks', macro, '\u0301' + '\u{20000}'.repeat(20) + '\u0301', 40);
+test('Hangul filler before CJK Extension B character', macro, '\u3164\u{2FA1F}', 2);
+test('CJK Extension B character between symbols', macro, '\u2192\u{2A6D6}\u{1F3C1}\u4E3D', 7);
+test('tag between symbol and CJK Extension G character', macro, '\u25FC\u{E0001}\u{3134A}', 3);
+test('box drawing table row', macro, '│ 名前 │ OK │', 13);
+test('box drawing table row (ambiguous wide)', macro, '│ 名前 │ OK │', 16, {ambiguousIsNarrow: false});
+test('ambiguous run (wide)', macro, '±'.repeat(20), 40, {ambiguousIsNarrow: false});
+test('mixed scripts prose', macro, 'Le café est déjà prêt 你好 Привет Γειά', 38);
+test('mixed scripts prose (ambiguous wide)', macro, 'Le café est déjà prêt 你好 Привет Γειά', 51, {ambiguousIsNarrow: false});
+test('prepend before CJK run', macro, '\u0600' + '你'.repeat(20), 40);
+test('CJK run with trailing ZWJ', macro, '你'.repeat(20) + '\u200D', 40);
+test('flag after CJK run', macro, '你'.repeat(20) + '\u{1F1FA}\u{1F1F8}', 42);
+
+test('cached code point widths stay correct across cache eviction', t => {
+	// More distinct code points than the cache holds, checked twice so both cold and warm lookups are covered
+	for (let pass = 0; pass < 2; pass++) {
+		for (let codePoint = 0x4E_00; codePoint < 0x4E_00 + 3000; codePoint++) {
+			const character = String.fromCodePoint(codePoint);
+			t.is(stringWidth('\u0301' + character), 2);
+			t.is(stringWidth(character.repeat(3)), 6);
+		}
+
+		for (let codePoint = 0x3_91; codePoint <= 0x3_A1; codePoint++) {
+			const character = String.fromCodePoint(codePoint);
+			t.is(stringWidth('\u0301' + character), 1);
+			t.is(stringWidth('\u0301' + character, {ambiguousIsNarrow: false}), 2);
+			t.is(stringWidth(character.repeat(3), {ambiguousIsNarrow: false}), 6);
+		}
+	}
+});
+
+test('standalone ranges contain only characters that never join a neighbouring cluster', t => {
+	// Anything that can take part in a join under UAX #29: Extend (marks, Grapheme_Extend, Emoji_Modifier), ZWJ and ZWNJ,
+	// SpacingMark (Mc), Control (Cc, Cf, Cs, Zl, Zp, default ignorables), Regional_Indicator, and the scripts that carry
+	// Prepend characters or Indic conjunct consonants and linkers.
+	const joiningProperties = [
+		'M',
+		'Grapheme_Extend',
+		'Emoji_Modifier',
+		'Join_Control',
+		'Cc',
+		'Cf',
+		'Cs',
+		'Zl',
+		'Zp',
+		'Default_Ignorable_Code_Point',
+		'Regional_Indicator',
+		'Script=Arabic',
+		'Script=Syriac',
+		'Script=Devanagari',
+		'Script=Bengali',
+		'Script=Gurmukhi',
+		'Script=Gujarati',
+		'Script=Oriya',
+		'Script=Tamil',
+		'Script=Telugu',
+		'Script=Kannada',
+		'Script=Malayalam',
+		'Script=Sinhala',
+		'Script=Tibetan',
+		'Script=Myanmar',
+		'Script=Khmer',
+		'Script=Thai',
+		'Script=Lao',
+		'Script=Balinese',
+		'Script=Javanese',
+	];
+	const joiningRegex = new RegExp(`[${joiningProperties.map(property => `\\p{${property}}`).join('')}]`, 'u');
+
+	// Every script the ranges may contain; anything else (including Inherited, which holds combining marks) is a failure
+	const allowedScripts = ['Latin', 'Greek', 'Coptic', 'Cyrillic', 'Han', 'Hiragana', 'Katakana', 'Hangul', 'Bopomofo', 'Braille', 'Common'];
+	const allowedScriptRegex = new RegExp(`^[${allowedScripts.map(script => `\\p{Script=${script}}`).join('')}\\p{Unassigned}]$`, 'u');
+
+	// Grapheme_Cluster_Break=Prepend (Unicode 16)
+	const prependCodePoints = new Set([
+		0x6_00,
+		0x6_01,
+		0x6_02,
+		0x6_03,
+		0x6_04,
+		0x6_05,
+		0x6_DD,
+		0x7_0F,
+		0x8_90,
+		0x8_91,
+		0x8_E2,
+		0xD_4E,
+		0x1_10_BD,
+		0x1_10_CD,
+		0x1_11_C2,
+		0x1_11_C3,
+		0x1_19_3F,
+		0x1_19_41,
+		0x1_1A_3A,
+		0x1_1A_84,
+		0x1_1A_85,
+		0x1_1A_86,
+		0x1_1A_87,
+		0x1_1A_88,
+		0x1_1A_89,
+		0x1_1D_46,
+		0x1_1F_02,
+	]);
+
+	const isHangulJamo = codePoint => (codePoint >= 0x11_00 && codePoint <= 0x11_FF) || (codePoint >= 0xA9_60 && codePoint <= 0xA9_7F) || (codePoint >= 0xD7_B0 && codePoint <= 0xD7_FF);
+
+	// The segmenter itself must agree: a standalone character never merges with a standalone neighbour of any kind
+	// (ASCII, Extended_Pictographic, precomposed Hangul, CJK, or another copy of itself)
+	const segmenter = new Intl.Segmenter();
+	const probes = ['a', '©', '가', '你'];
+
+	const failures = [];
+	for (const [start, end] of standaloneRanges) {
+		for (let codePoint = start; codePoint <= end; codePoint++) {
+			const character = String.fromCodePoint(codePoint);
+			const hex = codePoint.toString(16).toUpperCase();
+
+			if (joiningRegex.test(character) || !allowedScriptRegex.test(character) || prependCodePoints.has(codePoint) || isHangulJamo(codePoint)) {
+				failures.push(`U+${hex} can join a neighbouring cluster`);
+				continue;
+			}
+
+			let probeString = character;
+			for (const probe of probes) {
+				probeString += probe + character;
+			}
+
+			const segmentCount = [...segmenter.segment(probeString)].length;
+			if (segmentCount !== (probes.length * 2) + 1) {
+				failures.push(`U+${hex} merges with a neighbour (${segmentCount} segments)`);
+			}
+		}
+	}
+
+	t.deepEqual(failures, []);
+});
+
+test('standalone ranges are sorted, disjoint and exclude the width-affecting halfwidth marks', t => {
+	let previousEnd = -1;
+	for (const [start, end] of standaloneRanges) {
+		t.true(start > previousEnd, `range starting at U+${start.toString(16)} overlaps or is out of order`);
+		t.true(end >= start);
+		previousEnd = end;
+	}
+
+	const inRanges = codePoint => standaloneRanges.some(([start, end]) => codePoint >= start && codePoint <= end);
+	t.false(inRanges(0xFF_9E));
+	t.false(inRanges(0xFF_9F));
+	t.false(inRanges(0xAD));
+	t.false(inRanges(0x3_00));
+	t.false(inRanges(0x20_0D));
+	t.false(inRanges(0x30_99));
+	t.true(inRanges(0x4E_00));
+	t.true(inRanges(0xAC_00));
+	t.true(inRanges(0xE9));
+});
