@@ -337,3 +337,9 @@ test('ambiguous mixed with CJK (wide)', macro, '±你', 4, {ambiguousIsNarrow: f
 // `stripAnsi` guard: non-ANSI strings should not call `stripAnsi`
 test('non-ASCII without ANSI escapes', macro, '你好世界', 8);
 test('Latin1 without ANSI escapes', macro, 'résumé', 6);
+
+// Long runs of overlapping zero-width code points must not cause catastrophic backtracking
+test('many combining grapheme joiners + spacing mark', macro, '\u034F'.repeat(1000) + '\u0903', 1);
+test('many combining grapheme joiners + emoji modifier', macro, '\u034F'.repeat(1000) + '\u{1F3FB}', 2);
+test('huge cluster of combining grapheme joiners + spacing mark', macro, '\u034F'.repeat(3_000_000) + '\u0903', 1);
+test('huge cluster of only combining grapheme joiners', macro, '\u034F'.repeat(3_000_000), 0);

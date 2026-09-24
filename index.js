@@ -15,11 +15,9 @@ Logic:
 
 const segmenter = new Intl.Segmenter();
 
-// Whole-cluster zero-width
-const zeroWidthClusterRegex = /^(?:\p{Default_Ignorable_Code_Point}|\p{Control}|\p{Format}|\p{Nonspacing_Mark}|\p{Enclosing_Mark}|\p{Surrogate})+$/v;
-
-// Pick the base scalar if the cluster starts with Prepend/Format/Marks
-const leadingNonPrintingRegex = /^[\p{Default_Ignorable_Code_Point}\p{Control}\p{Format}\p{Nonspacing_Mark}\p{Enclosing_Mark}\p{Surrogate}]+/v;
+// Matches a visible (printing) character. Used to find the base scalar of a cluster (skipping leading Prepend/Format/Marks) and to detect whole-cluster zero-width.
+// Intentionally a single negated class without a quantifier: a repeated pattern like `^(?:…|…)+$` backtracks exponentially on overlapping properties, and even `^[…]+$` overflows V8's backtrack stack (RangeError) on clusters with millions of marks.
+const visibleCharacterRegex = /[^\p{Default_Ignorable_Code_Point}\p{Control}\p{Format}\p{Nonspacing_Mark}\p{Enclosing_Mark}\p{Surrogate}]/v;
 const spacingMarkRegex = /\p{Spacing_Mark}/v;
 
 // RGI emoji sequences
@@ -48,12 +46,10 @@ function isDoubleWidthNonRgiEmojiSequence(segment) {
 	return false;
 }
 
+// Returns the cluster starting at its first visible character, or `undefined` if the whole cluster is zero-width.
 function baseVisible(segment) {
-	return segment.replace(leadingNonPrintingRegex, '');
-}
-
-function isZeroWidthCluster(segment) {
-	return zeroWidthClusterRegex.test(segment);
+	const index = segment.search(visibleCharacterRegex);
+	return index === -1 ? undefined : segment.slice(index);
 }
 
 function isHangulLeadingJamo(codePoint) {
@@ -81,7 +77,7 @@ function hangulClusterWidth(visibleSegment, eastAsianWidthOptions) {
 	const codePoints = [];
 
 	for (const character of visibleSegment) {
-		if (zeroWidthClusterRegex.test(character)) {
+		if (!visibleCharacterRegex.test(character)) {
 			continue;
 		}
 
@@ -178,7 +174,8 @@ export default function stringWidth(input, options = {}) {
 
 	for (const {segment} of segmenter.segment(string)) {
 		// Zero-width / non-printing clusters
-		if (isZeroWidthCluster(segment)) {
+		const visibleSegment = baseVisible(segment);
+		if (visibleSegment === undefined) {
 			continue;
 		}
 
@@ -188,7 +185,6 @@ export default function stringWidth(input, options = {}) {
 			continue;
 		}
 
-		const visibleSegment = baseVisible(segment);
 		const hangulWidth = hangulClusterWidth(visibleSegment, eastAsianWidthOptions);
 		if (hangulWidth !== undefined) {
 			width += hangulWidth;
