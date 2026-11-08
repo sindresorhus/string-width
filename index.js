@@ -153,10 +153,6 @@ export default function stringWidth(input, options = {}) {
 		string = stripAnsi(string);
 	}
 
-	if (string.length === 0) {
-		return 0;
-	}
-
 	// Fast path: printable ASCII (0x20–0x7E) needs no segmenter, regex, or EAW lookup — width equals length.
 	// A negated class without a quantifier, since `^[…]*$` overflows V8's backtrack stack (RangeError) on strings with millions of characters.
 	if (!/[^\u{20}-\u{7E}]/v.test(string)) {
@@ -170,6 +166,15 @@ export default function stringWidth(input, options = {}) {
 	const eastAsianWidthOptions = {ambiguousAsWide: !ambiguousIsNarrow};
 
 	for (const {segment} of segmenter.segment(string)) {
+		// Fast path: a single visible UTF-16 code unit has its East Asian Width under every rule above (a single-code-point RGI emoji is East Asian Wide, and a Hangul cluster uses the width of its first code point).
+		if (segment.length === 1) {
+			if (visibleCharacterRegex.test(segment)) {
+				width += eastAsianWidth(segment.codePointAt(0), eastAsianWidthOptions);
+			}
+
+			continue;
+		}
+
 		width += clusterWidth(segment, eastAsianWidthOptions);
 	}
 

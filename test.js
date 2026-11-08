@@ -533,3 +533,15 @@ test('lone surrogate + combining mark', macro('\u{D800}\u{301}', 1));
 test('valid surrogate pair is not affected', macro('\u{D83D}\u{DE00}', 2));
 test('lone surrogate with wide ambiguous option', macro('\u{D800}', 2, {ambiguousIsNarrow: false}));
 test('lone surrogate after emoji', macro('😀\u{D800}', 3));
+
+test('every single-code-unit RGI emoji is double-width', () => {
+	const narrow = [];
+	for (let codePoint = 0; codePoint <= 0xFF_FF; codePoint++) {
+		const character = String.fromCodePoint(codePoint);
+		if (/^\p{RGI_Emoji}$/v.test(character) && stringWidth(character) !== 2) {
+			narrow.push(codePoint.toString(16));
+		}
+	}
+
+	assert.deepEqual(narrow, []);
+});
