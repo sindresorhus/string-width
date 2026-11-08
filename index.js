@@ -18,7 +18,7 @@ const segmenter = new Intl.Segmenter();
 // Matches a visible (printing) character. Used to find the base scalar of a cluster (skipping leading Prepend/Format/Marks) and to detect whole-cluster zero-width.
 // Intentionally a single negated class without a quantifier: a repeated pattern like `^(?:…|…)+$` backtracks exponentially on overlapping properties, and even `^[…]+$` overflows V8's backtrack stack (RangeError) on clusters with millions of marks.
 const visibleCharacterRegex = /[^\p{Default_Ignorable_Code_Point}\p{Control}\p{Enclosing_Mark}\p{Format}\p{Nonspacing_Mark}\p{Surrogate}]/v;
-const spacingMarkRegex = /\p{Spacing_Mark}/v;
+const spacingMarkRegex = /[\p{Spacing_Mark}\u{E33}\u{EB3}]/v;
 
 // RGI emoji sequences
 const rgiEmojiRegex = /^\p{RGI_Emoji}$/v;

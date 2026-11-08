@@ -346,3 +346,14 @@ test('many combining grapheme joiners + spacing mark', macro('\u{34F}'.repeat(10
 test('many combining grapheme joiners + emoji modifier', macro('\u{34F}'.repeat(1000) + '\u{1F3FB}', 2));
 test('huge cluster of combining grapheme joiners + spacing mark', macro('\u{34F}'.repeat(3_000_000) + '\u{903}', 1));
 test('huge cluster of only combining grapheme joiners', macro('\u{34F}'.repeat(3_000_000), 0));
+
+test('ANSI codes around Thai AM', macro('\u{1B}[31mกำ\u{1B}[39m', 2));
+test('Thai consonant + SARA AM', macro('กำ', 2));
+test('Thai word with SARA AM', macro('ทำงาน', 5));
+test('Thai consonant + tone mark + SARA AM', macro('น้ำ', 2));
+test('Lao consonant + AM', macro('ນຳ', 2));
+test('Thai SARA AM alone', macro('ำ', 1));
+test('Thai SARA AM with wide ambiguous option', macro('กำ±', 4, {ambiguousIsNarrow: false}));
+test('Thai word with above vowel (issue #43)', macro('ปฏัก', 3));
+test('Thai SARA AM composed and decomposed are the same width', macro('ก\u{E4D}\u{E32}', 2));
+test('Lao AM composed and decomposed are the same width', macro('ຄ\u{ECD}\u{EB2}', 2));
