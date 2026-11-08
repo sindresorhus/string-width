@@ -185,8 +185,8 @@ test('ASCII with trailing ZWJ', macro('A\u{200D}\u{200D}', 1));
 test('leading ZWJ + ASCII', macro('\u{200D}A', 1));
 test('leading ZWJ + CJK', macro('\u{200D}你', 2));
 
-// Prepended Concatenation Mark (GB9b) should not affect width of following cluster
-test('prepend + ASCII', macro('\u{600}A', 1));
+// A prepended concatenation mark is one column, but shares the cell of a following wide character
+test('prepend + ASCII', macro('\u{600}A', 2));
 test('prepend + CJK', macro('\u{600}你', 2));
 test('prepend + emoji', macro('\u{600}😀', 2));
 
@@ -285,9 +285,9 @@ test('asterisk as plain text', macro('*', 1));
 test('hash as plain text', macro('#', 1));
 
 // Unicode Format characters (non-default-ignorable)
-test('Arabic number sign U+0600', macro('\u{600}', 0));
-test('Arabic end of ayah U+06DD', macro('\u{6DD}', 0));
-test('Syriac abbreviation mark U+070F', macro('\u{70F}', 0));
+test('Arabic number sign U+0600', macro('\u{600}', 1));
+test('Arabic end of ayah U+06DD', macro('\u{6DD}', 1));
+test('Syriac abbreviation mark U+070F', macro('\u{70F}', 1));
 
 // Minimally-qualified/unqualified emoji sequences
 // These are emoji sequences missing VS16 but should still be width 2
@@ -496,3 +496,31 @@ for (const string of ['\u{AC01}\u{11A8}', '\u{AC00}\u{1161}', '\u{AC00}\u{11A8}'
 		assert.equal(stringWidth(string.normalize('NFC')), stringWidth(string.normalize('NFD')));
 	});
 }
+
+test('Arabic number sign before Arabic-Indic digits', macro('\u{600}١٢٣', 4));
+test('Arabic end of ayah before digits', macro('\u{6DD}١٢', 3));
+test('Arabic number sign before ASCII digits', macro('\u{600}123', 4));
+test('two prepended concatenation marks', macro('\u{600}\u{601}', 2));
+test('two prepended concatenation marks + ASCII', macro('\u{600}\u{601}a', 3));
+test('prepended concatenation mark + ambiguous characters (narrow)', macro('\u{600}±±', 3));
+test('prepended concatenation mark + ambiguous characters (wide)', macro('\u{600}±±', 4, {ambiguousIsNarrow: false}));
+test('prepended concatenation mark + combining mark', macro('\u{600}\u{300}', 1));
+test('prepended concatenation mark + Hebrew letter', macro('\u{600}א', 2));
+test('astral prepended concatenation mark', macro('\u{110BD}1', 2));
+test('astral prepended concatenation mark + CJK', macro('\u{110BD}你', 2));
+test('prepended concatenation mark + consonant with spacing mark', macro('\u{600}का', 3));
+test('prepended concatenation mark + Thai consonant with AM', macro('\u{600}กำ', 3));
+test('prepended concatenation mark + ASCII + stray skin tone modifier', macro('\u{600}a🏻', 4));
+test('prepended concatenation mark + Hangul syllable', macro('\u{600}가', 2));
+test('prepended concatenation mark + regional indicator', macro('\u{600}🇦', 2));
+test('prepended concatenation mark + wide emoji with VS15', macro('\u{600}⌚\u{FE0E}', 2));
+test('prepended concatenation mark + halfwidth kana with dakuten', macro('\u{600}ﾊﾞ', 3));
+test('prepended concatenation mark + skin tone modifier alone', macro('\u{600}\u{1F3FB}', 2));
+test('prepend + flag', macro('\u{600}🇺🇸', 2));
+test('prepend + text-default emoji with VS16', macro('\u{600}❤️', 2));
+test('prepend + keycap', macro('\u{600}1️⃣', 2));
+test('prepend + unqualified keycap', macro('\u{600}1\u{20E3}', 2));
+test('prepend + minimally-qualified ZWJ sequence', macro('\u{600}\u{2764}\u{200D}\u{1F525}', 2));
+test('prepend + RGI ZWJ sequence', macro('\u{600}👩‍💻', 2));
+test('prepend + text-default emoji with VS15', macro('\u{600}❤\u{FE0E}', 2));
+test('multiple prepends + flag', macro('\u{600}\u{601}🇺🇸', 2));

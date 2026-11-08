@@ -5,19 +5,25 @@ import {eastAsianWidth} from 'get-east-asian-width';
 Logic:
 - Segment graphemes to match how terminals render clusters.
 - Width rules:
-	1. Skip non-printing clusters (Default_Ignorable, Control, pure nonspacing/enclosing Mark, lone Surrogates). Tabs are ignored by design.
+	1. Skip non-printing clusters (Default_Ignorable, Control, Format except prepended concatenation marks, pure nonspacing/enclosing Mark, lone Surrogates). Tabs are ignored by design.
 	2. Clusters starting with an RGI emoji (\p{RGI_Emoji}), regional indicators, or a digit/#/* with VS16 are double-width, even with trailing extenders (e.g., a dangling ZWJ, an extra variation selector, or a spacing mark). Only a stray emoji modifier adds its own swatch width.
 	   A wide BMP emoji followed by VS15 (text presentation) is one column; anything after the VS15 is ignored.
 	3. Minimally-qualified emoji ZWJ sequences (2+ Extended_Pictographic) are double-width, except that a stray emoji modifier after the sequence adds its own swatch width. An unqualified keycap (no VS16) is text, so it uses the width of its base.
 	4. A cluster starting with Hangul (jamo or a precomposed syllable) is one syllable block with the width of its first code point (plus stray emoji modifiers), as in iTerm, Ghostty, and kitty.
-	5. Otherwise sum the East Asian Width of every visible code point in the cluster, stopping at a ZWJ.
+	5. Otherwise sum the East Asian Width of every visible code point in the cluster: the base plus trailing spacing marks (including Thai/Lao AM), stray emoji modifiers, Indic conjunct consonants, and halfwidth dakuten/handakuten. Nothing after a ZWJ is counted.
+	6. Prepended concatenation marks (e.g., ARABIC NUMBER SIGN before digits) are one column each, unless the following glyph is wide (East Asian Wide or emoji, but not in VS15 text style), which takes them into its own cell.
 */
 
 const segmenter = new Intl.Segmenter();
 
-// Matches a visible (printing) character. Used to find the base scalar of a cluster (skipping leading Prepend/Format/Marks) and to detect whole-cluster zero-width.
+// Prepended_Concatenation_Mark: Grapheme_Cluster_Break=Prepend format characters (e.g., ARABIC NUMBER SIGN) that are visible signs spanning the following characters
+const prependedConcatenationMarks = String.raw`\u{600}-\u{605}\u{6DD}\u{70F}\u{890}\u{891}\u{8E2}\u{110BD}\u{110CD}`;
+const prependedConcatenationMarksRegex = new RegExp(`^[${prependedConcatenationMarks}]+`, 'v');
+
+// Matches a visible (printing) character. Used to find the base scalar of a cluster (skipping leading Format characters and marks), to detect whole-cluster zero-width, and to skip invisible code points when summing widths.
 // Intentionally a single negated class without a quantifier: a repeated pattern like `^(?:…|…)+$` backtracks exponentially on overlapping properties, and even `^[…]+$` overflows V8's backtrack stack (RangeError) on clusters with millions of marks.
-const visibleCharacterRegex = /[^\p{Default_Ignorable_Code_Point}\p{Control}\p{Enclosing_Mark}\p{Format}\p{Nonspacing_Mark}\p{Surrogate}]/v;
+// Line and paragraph separators (U+2028, U+2029) are intentionally not skipped: iTerm, Terminal.app, and kitty show them as one column.
+const visibleCharacterRegex = new RegExp(String.raw`[^\p{Default_Ignorable_Code_Point}\p{Control}\p{Enclosing_Mark}\p{Nonspacing_Mark}\p{Surrogate}[\p{Format}--[${prependedConcatenationMarks}]]]`, 'v');
 
 // Clusters starting with an RGI emoji sequence. Not anchored at the end, so trailing extenders (ZWJ, marks, variation selectors) in the same cluster do not hide the emoji.
 // Regional indicators that do not form a valid flag (alone, or an unknown pair) are also shown as one wide symbol, and so is a digit, number sign, or asterisk with VS16 (an emoji presentation sequence that is not RGI on its own).
@@ -85,6 +91,51 @@ function visibleCodePointsWidth(visibleSegment, eastAsianWidthOptions) {
 	return width;
 }
 
+function clusterWidth(segment, eastAsianWidthOptions) {
+	// Prepended concatenation marks (e.g., ARABIC NUMBER SIGN) are visible one-column signs that join the next character. A wide glyph (East Asian Wide or emoji, but not a VS15 text style) takes them into its own cell.
+	// The marks are in U+0600..U+08FF plus U+110BD and U+110CD, so most clusters skip the regex
+	const firstCodePoint = segment.codePointAt(0);
+	const marks = firstCodePoint === 0x1_10_BD || firstCodePoint === 0x1_10_CD || (firstCodePoint >= 0x6_00 && firstCodePoint <= 0x8_FF) ? prependedConcatenationMarksRegex.exec(segment) : undefined;
+	if (marks) {
+		const rest = segment.slice(marks[0].length);
+		const restWidth = clusterWidth(rest, eastAsianWidthOptions);
+		const visibleRest = baseVisible(rest);
+		const isWideGlyph = restWidth >= 2 && (
+			eastAsianWidth(visibleRest.codePointAt(0), eastAsianWidthOptions) === 2
+			|| rgiEmojiRegex.test(visibleRest)
+			|| emojiZwjSequenceRegex.test(visibleRest)
+		);
+		return isWideGlyph ? restWidth : [...marks[0]].length + restWidth;
+	}
+
+	// Zero-width / non-printing clusters (including a Hangul filler with only invisible extenders)
+	const visibleSegment = baseVisible(segment);
+	if (visibleSegment === undefined) {
+		return 0;
+	}
+
+	// Checked on the raw cluster, since it can start with a Default_Ignorable filler
+	if (isHangul(firstCodePoint)) {
+		return eastAsianWidth(firstCodePoint, eastAsianWidthOptions) + (strayEmojiModifierCount(segment, 1) * 2);
+	}
+
+	if (textPresentationEmojiRegex.test(visibleSegment)) {
+		return 1;
+	}
+
+	// Emoji width logic. Uses the visible part, so leading invisible characters do not hide the emoji.
+	const emoji = rgiEmojiRegex.exec(visibleSegment);
+	if (emoji) {
+		return 2 + (strayEmojiModifierCount(visibleSegment, emoji[0].length) * 2);
+	}
+
+	// Minimally-qualified emoji ZWJ sequences are double-width, like RGI emoji, except that a stray emoji modifier after the sequence is shown as its own swatch. Everything else: EAW of the cluster’s visible scalars, including trailing spacing marks and Halfwidth/Fullwidth Forms (e.g., ﾞ, ﾟ)
+	const zwjSequence = emojiZwjSequenceRegex.exec(visibleSegment);
+	return zwjSequence
+		? 2 + (strayEmojiModifierCount(visibleSegment, zwjSequence.index + zwjSequence[0].length) * 2)
+		: visibleCodePointsWidth(visibleSegment, eastAsianWidthOptions);
+}
+
 export default function stringWidth(input, options = {}) {
 	if (typeof input !== 'string' || input.length === 0) {
 		return 0;
@@ -116,39 +167,7 @@ export default function stringWidth(input, options = {}) {
 	const eastAsianWidthOptions = {ambiguousAsWide: !ambiguousIsNarrow};
 
 	for (const {segment} of segmenter.segment(string)) {
-		// Zero-width / non-printing clusters
-		const visibleSegment = baseVisible(segment);
-		if (visibleSegment === undefined) {
-			continue;
-		}
-
-		if (textPresentationEmojiRegex.test(visibleSegment)) {
-			width += 1;
-			continue;
-		}
-
-		// Emoji matching uses the visible prefix so extenders do not hide an emoji
-		const emoji = rgiEmojiRegex.exec(visibleSegment);
-		if (emoji) {
-			width += 2 + (strayEmojiModifierCount(visibleSegment, emoji[0].length) * 2);
-			continue;
-		}
-
-		const zwjSequence = emojiZwjSequenceRegex.exec(visibleSegment);
-		if (zwjSequence) {
-			width += 2 + (strayEmojiModifierCount(visibleSegment, zwjSequence.index + zwjSequence[0].length) * 2);
-			continue;
-		}
-
-		// Check the raw cluster so a leading invisible filler starts the syllable block
-		const firstCodePoint = segment.codePointAt(0);
-		if (isHangul(firstCodePoint)) {
-			width += eastAsianWidth(firstCodePoint, eastAsianWidthOptions) + (strayEmojiModifierCount(segment, 1) * 2);
-			continue;
-		}
-
-		// Sum visible scalars, stopping at a ZWJ
-		width += visibleCodePointsWidth(visibleSegment, eastAsianWidthOptions);
+		width += clusterWidth(segment, eastAsianWidthOptions);
 	}
 
 	return width;
