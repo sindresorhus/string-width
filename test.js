@@ -27,18 +27,18 @@ test('non-string input (undefined)', () => {
 test('full-width characters', macro('你好', 4));
 test('half-width characters', macro('hello', 5));
 test('mixed width', macro('hello世界', 9));
-test('repeated leading Hangul jamo in one grapheme cluster stay additive', macro('ᄀᄀ', 4));
-test('long leading Hangul jamo cluster stays additive', macro('ᄀᄀᄀᄀᄀᄀ', 12));
+test('repeated leading Hangul jamo in one grapheme cluster are one syllable block', macro('ᄀᄀ', 2));
+test('long leading Hangul jamo cluster is one syllable block', macro('ᄀᄀᄀᄀᄀᄀ', 2));
 test('decomposed Hangul syllable cluster', macro('가', 2));
 test('decomposed Hangul syllable cluster with trailing jamo', macro('각', 2));
 test('decomposed Hangul syllable cluster with variation selector', macro('가\u{FE0F}', 2));
-test('repeated leading jamo before vowel composes last pair', macro('ᄀ가', 4));
-test('repeated vowel jamo after leading composes first pair', macro('가ᅡ', 3));
-test('repeated trailing jamo after syllable composes first three', macro('각ᆨ', 3));
-test('repeated leading Hangul jamo with variation selector stay additive', macro('ᄀᄀ\u{FE0F}', 4));
-test('repeated leading Hangul jamo with trailing ZWJ stay additive', macro('ᄀᄀ\u{200D}', 4));
-test('vowel-only Hangul jamo cluster stays additive', macro('ᅡᅡᅡ', 3));
-test('trailing-only Hangul jamo cluster stays additive', macro('ᆨᆨ', 2));
+test('repeated leading jamo before vowel', macro('ᄀ가', 2));
+test('repeated vowel jamo after leading', macro('가ᅡ', 2));
+test('repeated trailing jamo after syllable', macro('각ᆨ', 2));
+test('repeated leading Hangul jamo with variation selector', macro('ᄀᄀ\u{FE0F}', 2));
+test('repeated leading Hangul jamo with trailing ZWJ', macro('ᄀᄀ\u{200D}', 2));
+test('vowel-only Hangul jamo cluster has the width of its first jamo', macro('ᅡᅡᅡ', 1));
+test('trailing-only Hangul jamo cluster has the width of its first jamo', macro('ᆨᆨ', 1));
 test('single leading jamo alone is width 2', macro('ᄀ', 2));
 test('single vowel jamo alone is width 1', macro('ᅡ', 1));
 test('single trailing jamo alone is width 1', macro('ᆨ', 1));
@@ -52,7 +52,7 @@ test('two Hangul Compatibility Jamo do not compose', macro('ㄱㄱ', 4));
 test('precomposed syllable 가 U+AC00', macro('가', 2));
 test('precomposed syllable 한 U+D55C', macro('한', 2));
 test('three precomposed syllables', macro('한국어', 6));
-test('leading jamo + precomposed syllable in one cluster', macro('ᄀ가', 4));
+test('leading jamo + precomposed syllable in one cluster', macro('ᄀ가', 2));
 
 // Halfwidth Katakana with dakuten/handakuten (issue #55)
 test('halfwidth kana voiced sound mark (ba)', macro('ﾊﾞ', 2));
@@ -460,5 +460,39 @@ for (const base of '0123456789#*') {
 		assert.equal(stringWidth(`${base}\u{FE0F}\u{20E3}`), 2);
 		assert.equal(stringWidth(`${base}\u{20E3}`), 1);
 		assert.equal(stringWidth(`${base}\u{FE0F}\u{20E3}\u{200D}`), 2);
+	});
+}
+
+test('leading jamo + vowel + skin tone modifier', macro('\u{1100}\u{1161}🏻', 4));
+test('precomposed syllable + spacing mark', macro('가\u{903}', 2));
+test('Hangul syllable + halfwidth voiced mark', macro('가ﾞ', 2));
+test('Hangul cluster with three leading jamo + vowel', macro('\u{1100}\u{1100}\u{1100}\u{1161}', 2));
+test('Hangul syllables with ambiguous wide option', macro('한국어±', 8, {ambiguousIsNarrow: false}));
+test('precomposed LVT syllable + trailing jamo', macro('\u{AC01}\u{11A8}', 2));
+test('precomposed LV syllable + vowel jamo', macro('\u{AC00}\u{1161}', 2));
+test('precomposed LV syllable + trailing jamo', macro('\u{AC00}\u{11A8}', 2));
+test('precomposed LV syllable + extended trailing jamo', macro('\u{AC00}\u{D7CB}', 2));
+test('precomposed LV syllable + two trailing jamo', macro('\u{AC00}\u{11A8}\u{11A8}', 2));
+test('precomposed LV syllable + vowel + trailing jamo', macro('\u{AC00}\u{1161}\u{11A8}', 2));
+test('last precomposed LVT syllable + trailing jamo', macro('\u{D7A3}\u{11A8}', 2));
+test('leading jamo + precomposed LV syllable + trailing jamo', macro('\u{1100}\u{AC00}\u{11A8}', 2));
+test('precomposed Hangul cluster + trailing jamo in text', macro('a\u{AC01}\u{11A8}b', 4));
+test('choseong filler + vowel jamo', macro('\u{115F}\u{1161}', 2));
+test('choseong filler + vowel + trailing jamo', macro('\u{115F}\u{1161}\u{11A8}', 2));
+test('choseong filler alone is invisible', macro('\u{115F}', 0));
+test('choseong filler + vowel jamo in text', macro('a\u{115F}\u{1161}b', 4));
+test('jungseong filler after leading jamo', macro('\u{1100}\u{1160}', 2));
+test('jungseong filler alone', macro('\u{1160}', 0));
+test('Hangul filler U+3164 alone', macro('\u{3164}', 0));
+test('halfwidth Hangul filler U+FFA0 alone', macro('\u{FFA0}', 0));
+test('choseong filler + two leading jamo', macro('\u{115F}\u{1100}\u{1100}', 2));
+test('choseong filler + combining mark is invisible', macro('\u{115F}\u{301}', 0));
+test('choseong filler + trailing ZWJ is invisible', macro('\u{115F}\u{200D}', 0));
+test('jungseong filler + combining mark is invisible', macro('\u{1160}\u{301}', 0));
+test('jungseong filler between leading and trailing jamo', macro('\u{1100}\u{1160}\u{11A8}', 2));
+
+for (const string of ['\u{AC01}\u{11A8}', '\u{AC00}\u{1161}', '\u{AC00}\u{11A8}', '\u{1100}\u{AC00}\u{11A8}', '\u{AC00}\u{1161}\u{11A8}', '\u{1100}\u{1100}\u{1161}', '한국어\u{11A8}']) {
+	test(`Hangul width is the same in NFC and NFD: ${string}`, () => {
+		assert.equal(stringWidth(string.normalize('NFC')), stringWidth(string.normalize('NFD')));
 	});
 }

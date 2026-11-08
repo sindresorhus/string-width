@@ -9,8 +9,7 @@ Logic:
 	2. Clusters starting with an RGI emoji (\p{RGI_Emoji}), regional indicators, or a digit/#/* with VS16 are double-width, even with trailing extenders (e.g., a dangling ZWJ, an extra variation selector, or a spacing mark). Only a stray emoji modifier adds its own swatch width.
 	   A wide BMP emoji followed by VS15 (text presentation) is one column; anything after the VS15 is ignored.
 	3. Minimally-qualified emoji ZWJ sequences (2+ Extended_Pictographic) are double-width, except that a stray emoji modifier after the sequence adds its own swatch width. An unqualified keycap (no VS16) is text, so it uses the width of its base.
-	4. Hangul jamo collapse each standard modern Hangul L+V or L+V+T syllable piece to width 2.
-	   Unmatched repeated leading/vowel/trailing jamo stay additive because that matches how the terminals we target render them.
+	4. A cluster starting with Hangul (jamo or a precomposed syllable) is one syllable block with the width of its first code point (plus stray emoji modifiers), as in iTerm, Ghostty, and kitty.
 	5. Otherwise sum the East Asian Width of every visible code point in the cluster, stopping at a ZWJ.
 */
 
@@ -58,74 +57,13 @@ function baseVisible(segment) {
 	return index === -1 ? undefined : segment.slice(index);
 }
 
-function isHangulLeadingJamo(codePoint) {
-	return (codePoint >= 0x11_00 && codePoint <= 0x11_5F)
-		|| (codePoint >= 0xA9_60 && codePoint <= 0xA9_7C);
-}
-
-function isHangulVowelJamo(codePoint) {
-	return (codePoint >= 0x11_60 && codePoint <= 0x11_A7)
-		|| (codePoint >= 0xD7_B0 && codePoint <= 0xD7_C6);
-}
-
-function isHangulTrailingJamo(codePoint) {
-	return (codePoint >= 0x11_A8 && codePoint <= 0x11_FF)
+// Hangul jamo (U+1100..U+11FF, Hangul Jamo Extended-A and -B) and precomposed syllables. Includes the Default_Ignorable HANGUL CHOSEONG/JUNGSEONG FILLER (U+115F, U+1160), which start a syllable block in place of a missing jamo.
+function isHangul(codePoint) {
+	return (codePoint >= 0x11_00 && codePoint <= 0x11_FF)
+		|| (codePoint >= 0xA9_60 && codePoint <= 0xA9_7C)
+		|| (codePoint >= 0xAC_00 && codePoint <= 0xD7_A3)
+		|| (codePoint >= 0xD7_B0 && codePoint <= 0xD7_C6)
 		|| (codePoint >= 0xD7_CB && codePoint <= 0xD7_FB);
-}
-
-function isHangulJamo(codePoint) {
-	return isHangulLeadingJamo(codePoint)
-		|| isHangulVowelJamo(codePoint)
-		|| isHangulTrailingJamo(codePoint);
-}
-
-function hangulClusterWidth(visibleSegment, eastAsianWidthOptions) {
-	const codePoints = [];
-
-	for (const character of visibleSegment) {
-		if (!visibleCharacterRegex.test(character)) {
-			continue;
-		}
-
-		codePoints.push(character.codePointAt(0));
-	}
-
-	if (codePoints.length === 0) {
-		return undefined;
-	}
-
-	let width = 0;
-
-	for (let index = 0; index < codePoints.length; index++) {
-		const codePoint = codePoints[index];
-		if (!isHangulJamo(codePoint)) {
-			if (width === 0) {
-				return undefined;
-			}
-
-			// Mixed cluster (e.g., L + precomposed syllable): use EAW for non-jamo remainder
-			for (let remaining = index; remaining < codePoints.length; remaining++) {
-				width += eastAsianWidth(codePoints[remaining], eastAsianWidthOptions);
-			}
-
-			return width;
-		}
-
-		// Modern Hangul L+V(+T) shapes as one syllable block. Unmatched jamo stay additive:
-		// U+1100 U+1100 U+1161 => U+1100 + (U+1100 U+1161) => 2 + 2.
-		if (
-			isHangulLeadingJamo(codePoint)
-			&& isHangulVowelJamo(codePoints[index + 1])
-		) {
-			width += 2;
-			index += isHangulTrailingJamo(codePoints[index + 2]) ? 2 : 1;
-			continue;
-		}
-
-		width += eastAsianWidth(codePoint, eastAsianWidthOptions);
-	}
-
-	return width;
 }
 
 // Sums the East Asian Width of the visible code points of a cluster.
@@ -202,9 +140,10 @@ export default function stringWidth(input, options = {}) {
 			continue;
 		}
 
-		const hangulWidth = hangulClusterWidth(visibleSegment, eastAsianWidthOptions);
-		if (hangulWidth !== undefined) {
-			width += hangulWidth;
+		// Check the raw cluster so a leading invisible filler starts the syllable block
+		const firstCodePoint = segment.codePointAt(0);
+		if (isHangul(firstCodePoint)) {
+			width += eastAsianWidth(firstCodePoint, eastAsianWidthOptions) + (strayEmojiModifierCount(segment, 1) * 2);
 			continue;
 		}
 
