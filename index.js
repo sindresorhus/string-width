@@ -5,7 +5,7 @@ import {eastAsianWidth} from 'get-east-asian-width';
 Logic:
 - Segment graphemes to match how terminals render clusters.
 - Width rules:
-	1. Skip non-printing clusters (Default_Ignorable, Control, Format except prepended concatenation marks, pure nonspacing/enclosing Mark, lone Surrogates). Tabs are ignored by design.
+	1. Skip non-printing clusters (Default_Ignorable, Control, Format except prepended concatenation marks like ARABIC NUMBER SIGN, pure nonspacing/enclosing Mark). Tabs are ignored by design. Lone surrogates are measured as U+FFFD, which is how they are written out.
 	2. Clusters starting with an RGI emoji (\p{RGI_Emoji}), regional indicators, or a digit/#/* with VS16 are double-width, even with trailing extenders (e.g., a dangling ZWJ, an extra variation selector, or a spacing mark). Only a stray emoji modifier adds its own swatch width.
 	   A wide BMP emoji followed by VS15 (text presentation) is one column; anything after the VS15 is ignored.
 	3. Minimally-qualified emoji ZWJ sequences (2+ Extended_Pictographic) are double-width, except that a stray emoji modifier after the sequence adds its own swatch width. An unqualified keycap (no VS16) is text, so it uses the width of its base.
@@ -23,7 +23,7 @@ const prependedConcatenationMarksRegex = new RegExp(`^[${prependedConcatenationM
 // Matches a visible (printing) character. Used to find the base scalar of a cluster (skipping leading Format characters and marks), to detect whole-cluster zero-width, and to skip invisible code points when summing widths.
 // Intentionally a single negated class without a quantifier: a repeated pattern like `^(?:…|…)+$` backtracks exponentially on overlapping properties, and even `^[…]+$` overflows V8's backtrack stack (RangeError) on clusters with millions of marks.
 // Line and paragraph separators (U+2028, U+2029) are intentionally not skipped: iTerm, Terminal.app, and kitty show them as one column.
-const visibleCharacterRegex = new RegExp(String.raw`[^\p{Default_Ignorable_Code_Point}\p{Control}\p{Enclosing_Mark}\p{Nonspacing_Mark}\p{Surrogate}[\p{Format}--[${prependedConcatenationMarks}]]]`, 'v');
+const visibleCharacterRegex = new RegExp(String.raw`[^\p{Default_Ignorable_Code_Point}\p{Control}\p{Enclosing_Mark}\p{Nonspacing_Mark}[\p{Format}--[${prependedConcatenationMarks}]]]`, 'v');
 
 // Clusters starting with an RGI emoji sequence. Not anchored at the end, so trailing extenders (ZWJ, marks, variation selectors) in the same cluster do not hide the emoji.
 // Regional indicators that do not form a valid flag (alone, or an unknown pair) are also shown as one wide symbol, and so is a digit, number sign, or asterisk with VS16 (an emoji presentation sequence that is not RGI on its own).
@@ -162,6 +162,9 @@ export default function stringWidth(input, options = {}) {
 	if (!/[^\u{20}-\u{7E}]/v.test(string)) {
 		return string.length;
 	}
+
+	// A lone surrogate is written out as U+FFFD REPLACEMENT CHARACTER
+	string = string.toWellFormed();
 
 	let width = 0;
 	const eastAsianWidthOptions = {ambiguousAsWide: !ambiguousIsNarrow};

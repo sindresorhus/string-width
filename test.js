@@ -164,7 +164,7 @@ test('combining with full-width', macro('東京\u{301}', 4));
 test('only combining marks', macro('\u{300}\u{301}\u{302}', 0));
 test('only control characters', macro('\u{0}\u{1}\u{1B}', 0));
 test('only zero-width characters', macro('\u{200B}\u{200C}\u{200D}', 0));
-test('malformed surrogate', macro('\u{D800}', 0));
+test('malformed surrogate', macro('\u{D800}', 1));
 test('mixed control and text', macro('a\u{0}b\u{1}c', 3));
 test('double-width with combining', macro('你\u{301}好', 4));
 
@@ -524,3 +524,12 @@ test('prepend + minimally-qualified ZWJ sequence', macro('\u{600}\u{2764}\u{200D
 test('prepend + RGI ZWJ sequence', macro('\u{600}👩‍💻', 2));
 test('prepend + text-default emoji with VS15', macro('\u{600}❤\u{FE0E}', 2));
 test('multiple prepends + flag', macro('\u{600}\u{601}🇺🇸', 2));
+
+test('lone low surrogate', macro('\u{DC00}', 1));
+test('lone surrogate in text', macro('a\u{D800}b', 3));
+test('two lone high surrogates', macro('\u{D800}\u{D800}', 2));
+test('reversed surrogate pair', macro('\u{DE00}\u{D83D}', 2));
+test('lone surrogate + combining mark', macro('\u{D800}\u{301}', 1));
+test('valid surrogate pair is not affected', macro('\u{D83D}\u{DE00}', 2));
+test('lone surrogate with wide ambiguous option', macro('\u{D800}', 2, {ambiguousIsNarrow: false}));
+test('lone surrogate after emoji', macro('😀\u{D800}', 3));
