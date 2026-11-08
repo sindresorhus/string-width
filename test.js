@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import stringWidth from './index.js';
 
 // There is no macro helper in node:test, so build the test body directly
-const macro = (input, expected, options = {}) => () => {
+const macro = (input, expected, options) => () => {
 	assert.equal(stringWidth(input, options), expected);
 };
 
@@ -13,15 +13,9 @@ test('single ASCII character', macro('a', 1));
 test('ASCII string', macro('hello world', 11));
 
 // Edge cases for input validation
-test('non-string input (number)', () => {
-	assert.equal(stringWidth(123), 0);
-});
-test('non-string input (null)', () => {
-	assert.equal(stringWidth(null), 0);
-});
-test('non-string input (undefined)', () => {
-	assert.equal(stringWidth(undefined), 0);
-});
+test('non-string input (number)', macro(123, 0));
+test('non-string input (null)', macro(null, 0));
+test('non-string input (undefined)', macro(undefined, 0));
 test('non-string input (object)', macro({}, 0));
 test('non-string input (array)', macro(['abc'], 0));
 test('non-string input (boolean)', macro(true, 0));
@@ -45,7 +39,7 @@ test('tilde U+007E (highest printable ASCII)', macro('~', 1));
 test('DEL U+007F (just above printable ASCII)', macro('\u{7F}', 0));
 test('unit separator U+001F (just below printable ASCII)', macro('\u{1F}', 0));
 
-// Latin1 range (0xA0–0x2FF) — width 1
+// Latin characters and spacing modifiers
 test('non-breaking space U+00A0', macro('\u{A0}', 1));
 test('Latin ñ U+00F1', macro('ñ', 1));
 test('Latin ü U+00FC', macro('ü', 1));
@@ -57,6 +51,8 @@ test('Spacing Modifier U+02FF', macro('\u{2FF}', 1));
 test('null character', macro('\u{0}', 0));
 test('tab character', macro('\t', 0));
 test('newline character', macro('\n', 0));
+test('CRLF cluster', macro('\r\n', 0));
+test('CRLF cluster between ASCII', macro('a\r\nb', 2));
 test('escape character', macro('\u{1B}', 0));
 test('control in text', macro('a\u{1}b', 2));
 test('mixed control and text', macro('a\u{0}b\u{1}c', 3));
@@ -72,6 +68,7 @@ test('tab inside non-ASCII text', macro('你\t好', 4));
 
 // ANSI escape sequences
 test('ANSI color codes', macro('\u{1B}[31mred\u{1B}[0m', 3));
+test('only ANSI color codes', macro('\u{1B}[31m\u{1B}[0m', 0));
 test('ANSI codes counted', macro('\u{1B}[31m', 4, {countAnsiEscapeCodes: true}));
 test('C1 CSI ANSI codes counted', macro('\u{9B}31m', 3, {countAnsiEscapeCodes: true}));
 test('complex ANSI sequence', macro('\u{1B}]8;;https://example.com\u{7}link\u{1B}]8;;\u{7}', 4));
@@ -102,7 +99,7 @@ test('ZWNJ alone', macro('\u{200C}', 0));
 test('ZWJ alone', macro('\u{200D}', 0));
 test('Arabic with ZWNJ', macro('ب\u{200C}ه', 2));
 test('multiple ZWNJ between ASCII', macro('a\u{200C}\u{200C}b', 2));
-test('Indic conjunct via ZWJ', macro('क्\u{200D}ष', 1)); // ZWJ requests one ligature, which iTerm and kitty show in one column
+test('Indic conjunct via ZWJ', macro('क्\u{200D}ष', 1)); // ZWJ requests a half-form; this width follows terminal behavior
 
 // Default ignorable code points
 test('word joiner', macro('a\u{2060}b', 2));
@@ -122,7 +119,7 @@ test('ASCII with trailing ZWJ', macro('A\u{200D}\u{200D}', 1));
 test('leading ZWJ + ASCII', macro('\u{200D}A', 1));
 test('leading ZWJ + CJK', macro('\u{200D}你', 2));
 
-// Soft hyphen (0xAD) — zero-width
+// Soft hyphen (0xAD) is zero-width
 test('soft hyphen U+00AD', macro('\u{AD}', 0));
 test('soft hyphen in text', macro('a\u{AD}b', 2));
 
@@ -139,7 +136,7 @@ test('pre-base spacing mark after base character', macro('\u{915}\u{93F}', 2));
 test('combining with full-width', macro('東京\u{301}', 4));
 test('double-width with combining', macro('你\u{301}好', 4));
 
-// Combining diacritical boundary (0x300) — zero-width combining mark
+// The combining diacritical boundary (0x300) is a zero-width combining mark
 test('combining grave U+0300 alone', macro('\u{300}', 0));
 test('char + combining at 0x300 boundary', macro('a\u{300}', 1));
 
@@ -166,6 +163,8 @@ for (const [vowel, composed, decomposed] of [
 
 test('Kirat Rai AU with composed O and E', macro('\u{16D69}\u{16D67}', 1));
 test('Kirat Rai AU with AA and composed AI', macro('\u{16D63}\u{16D68}', 1));
+test('ANSI inside decomposed Kirat Rai vowel', macro('\u{16D43}\u{16D63}\u{1B}[31m\u{16D67}\u{16D67}\u{1B}[0m', 2));
+test('separate decomposed Kirat Rai syllables', macro('\u{16D43}\u{16D67}\u{16D67}\u{16D43}\u{16D63}\u{16D67}\u{16D67}', 4));
 
 // Line and paragraph separators are not line breaks in terminals: iTerm, Terminal.app, and kitty show them as one column
 test('line separator U+2028', macro('\u{2028}', 1));
@@ -206,7 +205,7 @@ test('Thai SARA AM alone', macro('ำ', 1));
 test('Thai SARA AM with wide ambiguous option', macro('กำ±', 4, {ambiguousIsNarrow: false}));
 test('Thai word with above vowel (issue #43)', macro('ปฏัก', 3));
 
-// SARA AM is the NFC form of NIKHAHIT + SARA AA, and both spellings render the same, so they must measure the same
+// SARA AM has a compatibility decomposition into NIKHAHIT + SARA AA; both spellings render the same and must measure the same
 test('Thai SARA AM composed and decomposed are the same width', macro('ก\u{E4D}\u{E32}', 2));
 test('Lao AM composed and decomposed are the same width', macro('ຄ\u{ECD}\u{EB2}', 2));
 
@@ -228,7 +227,7 @@ test('conjunct with nukta', macro('क़्ष', 2));
 test('long conjunct chain in one cluster', macro('क्'.repeat(5) + 'क', 6));
 test('Hindi sentence', macro('हिन्दी में नमस्ते', 12));
 
-// A ZWJ inside a text cluster joins the rest into one glyph, so nothing after it adds width (measured in iTerm and kitty)
+// This terminal width policy stops counting visible characters at a ZWJ inside a text cluster
 test('two ZWJ conjuncts in one cluster', macro('क्\u{200D}ष्\u{200D}ट', 1));
 test('ZWJ conjunct + spacing mark', macro('क्\u{200D}षा', 1));
 test('ZWJ conjunct in text', macro('aक्\u{200D}षb', 3));
@@ -517,7 +516,7 @@ test('skin tone modifier after ZWJ following emoji is absorbed', macro('😀\u{2
 test('emoji + two stray skin tone modifiers', macro('😀🏻🏿', 6));
 test('flag + stray skin tone modifier', macro('🇺🇸🏻', 4));
 test('keycap + stray skin tone modifier', macro('1️⃣🏻', 4));
-test('modifier base with VS16 + skin tone', macro('☝️🏻', 4)); // VS16 breaks the modifier sequence, so the modifier is a stray swatch
+test('modifier base with VS16 + skin tone', macro('☝️🏻', 4)); // This terminal width policy treats the intervening VS16 as breaking the modifier sequence
 test('emoji-presentation emoji + skin tone on non-modifier base', macro('😀🏻', 4));
 test('ZWJ sequence ending in a modifier base + skin tone modifier', macro('👨‍👩‍👧‍👦🏻', 2));
 test('skin tone modifier on modifier base after ZWJ sequence part', macro('👩🏽‍💻', 2));
@@ -547,7 +546,9 @@ test('lone regional indicator + stray skin tone modifier', macro('🇦🏻', 4))
 // Unicode Format characters (non-default-ignorable)
 test('Arabic number sign U+0600', macro('\u{600}', 1));
 test('Arabic end of ayah U+06DD', macro('\u{6DD}', 1));
-test('Syriac abbreviation mark U+070F', macro('\u{70F}', 1));
+test('Syriac abbreviation mark U+070F', macro('\u{70F}', 0));
+test('Syriac abbreviation mark before letters', macro('\u{70F}\u{710}\u{712}', 2));
+test('Syriac abbreviation mark inside a word', macro('\u{72C}\u{70F}\u{72B}\u{712}\u{718}', 4));
 
 // Prepended concatenation marks (e.g., ARABIC NUMBER SIGN) are visible signs that span the following digits (measured in iTerm, Terminal.app, and Ghostty)
 test('Arabic number sign before Arabic-Indic digits', macro('\u{600}١٢٣', 4));
