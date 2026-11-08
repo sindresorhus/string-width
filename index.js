@@ -17,15 +17,15 @@ const segmenter = new Intl.Segmenter();
 
 // Matches a visible (printing) character. Used to find the base scalar of a cluster (skipping leading Prepend/Format/Marks) and to detect whole-cluster zero-width.
 // Intentionally a single negated class without a quantifier: a repeated pattern like `^(?:…|…)+$` backtracks exponentially on overlapping properties, and even `^[…]+$` overflows V8's backtrack stack (RangeError) on clusters with millions of marks.
-const visibleCharacterRegex = /[^\p{Default_Ignorable_Code_Point}\p{Control}\p{Format}\p{Nonspacing_Mark}\p{Enclosing_Mark}\p{Surrogate}]/v;
+const visibleCharacterRegex = /[^\p{Default_Ignorable_Code_Point}\p{Control}\p{Enclosing_Mark}\p{Format}\p{Nonspacing_Mark}\p{Surrogate}]/v;
 const spacingMarkRegex = /\p{Spacing_Mark}/v;
 
 // RGI emoji sequences
 const rgiEmojiRegex = /^\p{RGI_Emoji}$/v;
 
 // Detect minimally-qualified/unqualified emoji sequences (missing VS16 but still render as double-width)
-const unqualifiedKeycapRegex = /^[\d#*]\u20E3$/;
-const extendedPictographicRegex = /\p{Extended_Pictographic}/gu;
+const unqualifiedKeycapRegex = /^[\d#*]\u{20E3}$/v;
+const extendedPictographicRegex = /\p{Extended_Pictographic}/gv;
 
 function isDoubleWidthNonRgiEmojiSequence(segment) {
 	// Real emoji clusters are < 30 chars; guard against pathological input
@@ -38,7 +38,7 @@ function isDoubleWidthNonRgiEmojiSequence(segment) {
 	}
 
 	// ZWJ sequences with 2+ Extended_Pictographic
-	if (segment.includes('\u200D')) {
+	if (segment.includes('\u{200D}')) {
 		const pictographics = segment.match(extendedPictographicRegex);
 		return pictographics !== null && pictographics.length >= 2;
 	}
@@ -124,17 +124,17 @@ function hangulClusterWidth(visibleSegment, eastAsianWidthOptions) {
 
 function trailingWidth(visibleSegment, eastAsianWidthOptions) {
 	let extra = 0;
-	let first = true;
+	let isFirst = true;
 
 	for (const character of visibleSegment) {
-		if (first) {
-			first = false;
+		if (isFirst) {
+			isFirst = false;
 			continue;
 		}
 
 		if (
 			spacingMarkRegex.test(character)
-			|| (character >= '\uFF00' && character <= '\uFFEF')
+			|| (character >= '\u{FF00}' && character <= '\u{FFEF}')
 		) {
 			extra += eastAsianWidth(character.codePointAt(0), eastAsianWidthOptions);
 		}
@@ -156,7 +156,7 @@ export default function stringWidth(input, options = {}) {
 	let string = input;
 
 	// Avoid calling stripAnsi when there are no ANSI escape sequences (ESC = 0x1B, CSI = 0x9B)
-	if (!countAnsiEscapeCodes && (string.includes('\u001B') || string.includes('\u009B'))) {
+	if (!countAnsiEscapeCodes && (string.includes('\u{1B}') || string.includes('\u{9B}'))) {
 		string = stripAnsi(string);
 	}
 
@@ -165,7 +165,8 @@ export default function stringWidth(input, options = {}) {
 	}
 
 	// Fast path: printable ASCII (0x20–0x7E) needs no segmenter, regex, or EAW lookup — width equals length.
-	if (/^[\u0020-\u007E]*$/.test(string)) {
+	// A negated class without a quantifier, since `^[…]*$` overflows V8's backtrack stack (RangeError) on strings with millions of characters.
+	if (!/[^\u{20}-\u{7E}]/v.test(string)) {
 		return string.length;
 	}
 

@@ -49,7 +49,7 @@ Default: `true`
 Count [ambiguous width characters](https://www.unicode.org/reports/tr11/#Ambiguous) as having narrow width (count of 1) instead of wide width (count of 2).
 
 > Ambiguous characters behave like wide or narrow characters depending on the context (language tag, script identification, associated font, source of data, or explicit markup; all can provide the context). **If the context cannot be established reliably, they should be treated as narrow characters by default.**
-> - http://www.unicode.org/reports/tr11/
+> - https://www.unicode.org/reports/tr11/
 
 ##### countAnsiEscapeCodes
 
