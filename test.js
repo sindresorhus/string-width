@@ -149,6 +149,24 @@ test('precomposed and decomposed Latin letter', () => {
 	assert.equal(stringWidth('Ệ'), stringWidth('Ệ'.normalize('NFD')));
 });
 
+for (const [vowel, composed, decomposed] of [
+	['AI', '\u{16D68}', '\u{16D67}\u{16D67}'],
+	['O', '\u{16D69}', '\u{16D63}\u{16D67}'],
+	['AU', '\u{16D6A}', '\u{16D63}\u{16D67}\u{16D67}'],
+]) {
+	for (const [form, spelling] of [['composed', composed], ['decomposed', decomposed]]) {
+		test(`Kirat Rai vowel ${vowel} (${form})`, () => {
+			assert.equal(stringWidth(spelling), 1);
+			assert.equal(stringWidth(`\u{16D43}${spelling}`), 2);
+			assert.equal(stringWidth(`a\u{16D43}${spelling}b`), 4);
+			assert.equal(stringWidth(`\u{16D43}${spelling}±`, {ambiguousIsNarrow: false}), 4);
+		});
+	}
+}
+
+test('Kirat Rai AU with composed O and E', macro('\u{16D69}\u{16D67}', 1));
+test('Kirat Rai AU with AA and composed AI', macro('\u{16D63}\u{16D68}', 1));
+
 // Line and paragraph separators are not line breaks in terminals: iTerm, Terminal.app, and kitty show them as one column
 test('line separator U+2028', macro('\u{2028}', 1));
 test('paragraph separator U+2029', macro('\u{2029}', 1));

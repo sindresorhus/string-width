@@ -162,6 +162,9 @@ export default function stringWidth(input, options = {}) {
 	// A lone surrogate is written out as U+FFFD REPLACEMENT CHARACTER
 	string = string.toWellFormed();
 
+	// Kirat Rai vowel runs form one glyph, including canonically decomposed vowels. Collapse them before segmentation so older Unicode tables give the same width.
+	string = string.replaceAll(/(?<=[\u{16D63}-\u{16D6A}])[\u{16D63}-\u{16D6A}]+/gv, '');
+
 	let width = 0;
 	const eastAsianWidthOptions = {ambiguousAsWide: !ambiguousIsNarrow};
 
