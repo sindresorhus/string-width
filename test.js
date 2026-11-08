@@ -144,12 +144,12 @@ test('emoji with skin tone', macro('👋🏽', 2));
 test('ZWJ sequence', macro('👨‍👩‍👧‍👦', 2));
 test('keycap sequence', macro('1️⃣', 2));
 test('flag sequence', macro('🇺🇸', 2));
-test('tag sequence', macro('🏴', 2));
+test('tag sequence', macro('\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}', 2)); // England flag
 
 // Regional indicators
-test('single regional indicator', macro('🇦', 1));
+test('single regional indicator', macro('🇦', 2));
 test('flag from two regional indicators', macro('🇺🇸', 2));
-test('three regional indicators', macro('🇺🇸🇦', 3));
+test('three regional indicators', macro('🇺🇸🇦', 4));
 
 // Default ignorable code points
 test('word joiner', macro('a\u{2060}b', 2));
@@ -195,9 +195,9 @@ test('only default ignorables (tags)', macro('\u{E0020}\u{E007F}', 0));
 
 // Emoji coverage for RGI and related cases
 // Case 1: Emoji with VS16 (should be double-width)
-test('digit with VS16 (keycap base)', macro('0\u{FE0F}', 1)); // Digits/asterisk/pound are not RGI emoji
-test('asterisk with VS16', macro('*\u{FE0F}', 1));
-test('pound with VS16', macro('#\u{FE0F}', 1));
+test('digit with VS16 (keycap base)', macro('0\u{FE0F}', 2)); // Not RGI, but a standardized emoji presentation sequence (measured 2 in Ghostty and kitty)
+test('asterisk with VS16', macro('*\u{FE0F}', 2));
+test('pound with VS16', macro('#\u{FE0F}', 2));
 test('trademark with VS16', macro('™\u{FE0F}', 2));
 test('watch with VS16', macro('⌚\u{FE0F}', 2));
 test('phone with VS16', macro('☎\u{FE0F}', 2));
@@ -213,7 +213,7 @@ test('star emoji (has Emoji_Presentation)', macro('⭐', 2));
 
 // Case 3: Emoji_Presentation with VS15 (should be single-width)
 test('heart with VS15 (text style)', macro('❤\u{FE0E}', 1));
-test('star with VS15 (text style)', macro('⭐\u{FE0E}', 2)); // Star with VS15 still renders as 2 in terminals
+test('star with VS15 (text style)', macro('⭐\u{FE0E}', 1));
 
 // Case 4: Multi-scalar meaningful sequences (should be double-width)
 test('keycap sequence 0️⃣', macro('0️⃣', 2));
@@ -237,8 +237,8 @@ test('envelope without VS (not Emoji_Presentation)', macro('✉', 1));
 
 // Case 6: Edge cases for multi-scalar logic
 test('single code point with VS15 (2 scalars but not meaningful)', macro('A\u{FE0E}', 1));
-test('emoji with VS15 only (2 scalars, VS15 present)', macro('⌚\u{FE0E}', 2)); // Watch with VS15 still renders as 2
-test('three code points with VS15 at end', macro('A👋\u{FE0E}', 3));
+test('emoji with VS15 only (2 scalars, VS15 present)', macro('⌚\u{FE0E}', 1));
+test('three code points with VS15 at end', macro('A👋\u{FE0E}', 3)); // Astral emoji keep their width with VS15 (see the limitation in index.js)
 
 // Case 7: RGI emoji coverage
 test('RGI emoji face', macro('😊', 2));
@@ -255,18 +255,18 @@ test('text character kept text with VS15', macro('↔\u{FE0E}', 1));
 
 // Case 9: Non-RGI sequences
 test('non-RGI with VS16', macro('〰\u{FE0F}', 2));
-test('non-RGI multi-scalar', macro('☎\u{FE0F}\u{20E3}', 1)); // Not RGI emoji, counts as 1
+test('non-RGI multi-scalar', macro('☎\u{FE0F}\u{20E3}', 2)); // Not an RGI sequence, but starts with the RGI emoji ☎️ and the keycap is zero-width
 
-// Case 10: VS15 on Emoji_Presentation remain width 2 in most terminals via EAW
-test('hourglass with VS15', macro('⌛\u{FE0E}', 2));
-test('fast-forward with VS15', macro('⏩\u{FE0E}', 2));
-test('rewind with VS15', macro('⏪\u{FE0E}', 2));
-test('arrow double up with VS15', macro('⏫\u{FE0E}', 2));
-test('arrow double down with VS15', macro('⏬\u{FE0E}', 2));
-test('alarm clock with VS15', macro('⏰\u{FE0E}', 2));
-test('hourglass flowing sand with VS15', macro('⏳\u{FE0E}', 2));
-test('umbrella with rain with VS15', macro('☔\u{FE0E}', 2));
-test('hot beverage with VS15', macro('☕\u{FE0E}', 2));
+// Case 10: VS15 on BMP Emoji_Presentation selects the narrow text style
+test('hourglass with VS15', macro('⌛\u{FE0E}', 1));
+test('fast-forward with VS15', macro('⏩\u{FE0E}', 1));
+test('rewind with VS15', macro('⏪\u{FE0E}', 1));
+test('arrow double up with VS15', macro('⏫\u{FE0E}', 1));
+test('arrow double down with VS15', macro('⏬\u{FE0E}', 1));
+test('alarm clock with VS15', macro('⏰\u{FE0E}', 1));
+test('hourglass flowing sand with VS15', macro('⏳\u{FE0E}', 1));
+test('umbrella with rain with VS15', macro('☔\u{FE0E}', 1));
+test('hot beverage with VS15', macro('☕\u{FE0E}', 1));
 // Removed redundant duplicate of '⭐\uFE0E' test
 
 // Other emoji that may not have Emoji_Presentation but are affected
@@ -302,12 +302,12 @@ test('man detective (MQ)', macro('\u{1F575}\u{200D}\u{2642}', 2)); // 🕵‍♂
 test('woman detective (MQ)', macro('\u{1F575}\u{200D}\u{2640}', 2)); // 🕵‍♀
 
 // Unqualified keycap sequences (missing VS16)
-test('keycap # (UQ)', macro('#\u{20E3}', 2)); // #⃣
-test('keycap 0 (UQ)', macro('0\u{20E3}', 2)); // 0⃣
-test('keycap * (UQ)', macro('*\u{20E3}', 2)); // *⃣
+test('keycap # (UQ)', macro('#\u{20E3}', 1)); // #⃣
+test('keycap 0 (UQ)', macro('0\u{20E3}', 1)); // 0⃣
+test('keycap * (UQ)', macro('*\u{20E3}', 1)); // *⃣
 
 // Ensure invalid keycap sequences don't match
-test('phone + keycap (invalid)', macro('\u{260E}\u{FE0F}\u{20E3}', 1)); // Not a valid keycap base
+test('phone + keycap (invalid)', macro('\u{260E}\u{FE0E}\u{20E3}', 1)); // Not a valid keycap base, and text presentation
 
 // Latin1 range (0xA0–0x2FF) — width 1, no segmenter or EAW lookup needed
 test('non-breaking space U+00A0', macro('\u{A0}', 1));
@@ -392,3 +392,73 @@ test('ambiguous + skin tone modifier (wide)', macro('±🏻', 4, {ambiguousIsNar
 test('skin tone modifier after halfwidth katakana', macro('ｶ🏻', 3));
 test('huge cluster of skin tone modifiers after ASCII', macro('a' + '🏻'.repeat(100_000), 200_001));
 test('huge conjunct chain', macro('क्'.repeat(100_000) + 'क', 100_001));
+
+test('ANSI codes around invalid regional indicator pair', macro('\u{1B}[31m🇦🇦\u{1B}[39m', 2));
+test('counted ANSI codes next to emoji with trailing ZWJ', macro('\u{1B}[31m⚠️\u{200D}', 6, {countAnsiEscapeCodes: true}));
+test('black flag', macro('🏴', 2));
+test('ZWJ sequence with different skin tones', macro('\u{1F9D1}\u{1F3FF}\u{200D}\u{1F91D}\u{200D}\u{1F9D1}\u{1F3FB}', 2));
+test('heart emoji with VS16 (not Emoji_Presentation)', macro('❤️', 2));
+test('wavy dash with VS16', macro('〰\u{FE0F}', 2));
+test('high variation selector U+E0100 ignored', macro('a\u{E0100}', 1));
+test('check mark button with VS15', macro('✅\u{FE0E}', 1));
+test('watch with VS15 in text', macro('a⌚\u{FE0E}b', 3));
+test('watch with VS15 + trailing ZWJ', macro('⌚\u{FE0E}\u{200D}', 1));
+test('watch with VS15 + stray skin tone modifier stays narrow', macro('⌚\u{FE0E}🏻', 1));
+test('astral emoji with VS15 keeps its width with trailing ZWJ', macro('👋\u{FE0E}\u{200D}', 2));
+test('CJK with VS15 stays wide', macro('你\u{FE0E}', 2));
+test('digit with VS16 in text', macro('a1\u{FE0F}b', 4));
+test('digit with VS16 + combining mark', macro('1\u{FE0F}\u{301}', 2));
+test('digit with VS16 + trailing ZWJ', macro('1\u{FE0F}\u{200D}', 2));
+test('digit with VS15 stays narrow', macro('1\u{FE0E}', 1));
+test('every digit with VS16', macro('0\u{FE0F}1\u{FE0F}2\u{FE0F}3\u{FE0F}4\u{FE0F}5\u{FE0F}6\u{FE0F}7\u{FE0F}8\u{FE0F}9\u{FE0F}', 20));
+test('couple with heart without VS16 (MQ)', macro('\u{1F468}\u{200D}\u{2764}\u{200D}\u{1F468}', 2));
+test('minimally-qualified ZWJ sequence with many trailing extenders', macro('\u{2764}\u{200D}\u{1F525}' + '\u{34F}'.repeat(60), 2));
+test('minimally-qualified ZWJ sequence + stray skin tone modifier', macro('\u{2764}\u{200D}\u{1F525}\u{1F3FB}', 4));
+test('minimally-qualified ZWJ sequence ending in a modifier base + skin tone modifier', macro('\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}\u{1F3FD}', 2));
+test('unqualified keycap + trailing ZWJ', macro('1\u{20E3}\u{200D}', 1));
+test('unqualified keycap + many trailing ZWJs', macro('1\u{20E3}' + '\u{200D}'.repeat(60), 1));
+test('text-default emoji + enclosing keycap is not a keycap sequence', macro('☎\u{20E3}', 1));
+test('text-default emoji with VS16 + trailing ZWJ', macro('⚠️\u{200D}', 2));
+test('flag + trailing ZWJ', macro('🇺🇸\u{200D}', 2));
+test('text-default emoji with VS16 + combining mark', macro('❤️\u{301}', 2));
+test('text-default emoji with VS16 + extra VS16', macro('❤️\u{FE0F}', 2));
+test('text-default emoji with VS16 + combining grapheme joiner', macro('❤️\u{34F}', 2));
+test('text-default emoji with VS16 + tag characters', macro('❤️\u{E0067}\u{E007F}', 2));
+test('flag + combining mark', macro('🇺🇸\u{301}', 2));
+test('RGI ZWJ sequence + trailing ZWJ', macro('👩‍💻\u{200D}', 2));
+test('trailing ZWJ after text-default emoji without VS16 stays narrow', macro('❤\u{200D}', 1));
+test('trailing ZWJ between emoji in a string', macro('a⚠️\u{200D}b', 4));
+test('emoji cluster with a stray spacing mark is double-width as a whole', macro('😀\u{903}', 2));
+test('skin tone modifier alone', macro('🏻', 2));
+test('skin tone modifier on modifier base', macro('✌🏻', 2));
+test('skin tone modifier on modifier base in text', macro('a👍🏽b', 4));
+test('skin tone modifier after Hangul syllable', macro('가🏻', 4));
+test('skin tone modifier after ZWJ following emoji is absorbed', macro('😀\u{200D}🏻', 2));
+test('emoji + two stray skin tone modifiers', macro('😀🏻🏿', 6));
+test('flag + stray skin tone modifier', macro('🇺🇸🏻', 4));
+test('keycap + stray skin tone modifier', macro('1️⃣🏻', 4));
+test('modifier base with VS16 + skin tone', macro('☝️🏻', 4));
+test('emoji-presentation emoji + skin tone on non-modifier base', macro('😀🏻', 4));
+test('ZWJ sequence ending in a modifier base + skin tone modifier', macro('👨‍👩‍👧‍👦🏻', 2));
+test('skin tone modifier on modifier base after ZWJ sequence part', macro('👩🏽‍💻', 2));
+test('five regional indicators pair up from the start', macro('🇺🇸🇺🇸🇺', 6));
+test('flag + ZWJ does not join a following emoji', macro('🇺🇸\u{200D}😀', 4));
+test('invalid regional indicator pair', macro('🇦🇦', 2));
+test('invalid regional indicator pair in text', macro('a🇺🇺b', 4));
+test('invalid pair + single regional indicator', macro('🇦🇦🇦', 4));
+test('invalid pair + valid flag', macro('🇦🇦🇺🇸', 4));
+test('valid flag + invalid pair', macro('🇺🇸🇦🇦', 4));
+test('invalid regional indicator pair with trailing ZWJ', macro('🇦🇦\u{200D}', 2));
+test('lone regional indicator in text', macro('a🇦b', 4));
+test('lone regional indicator + combining mark', macro('🇦\u{301}', 2));
+test('lone regional indicator + trailing ZWJ', macro('🇦\u{200D}', 2));
+test('four regional indicators form two pairs', macro('🇦🇦🇦🇦', 4));
+test('lone regional indicator + stray skin tone modifier', macro('🇦🏻', 4));
+test('huge emoji cluster with trailing ZWJs', macro('⚠️' + '\u{200D}'.repeat(100_000), 2));
+for (const base of '0123456789#*') {
+	test(`keycap ${base} (fully-qualified and unqualified)`, () => {
+		assert.equal(stringWidth(`${base}\u{FE0F}\u{20E3}`), 2);
+		assert.equal(stringWidth(`${base}\u{20E3}`), 1);
+		assert.equal(stringWidth(`${base}\u{FE0F}\u{20E3}\u{200D}`), 2);
+	});
+}

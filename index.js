@@ -6,8 +6,9 @@ Logic:
 - Segment graphemes to match how terminals render clusters.
 - Width rules:
 	1. Skip non-printing clusters (Default_Ignorable, Control, pure nonspacing/enclosing Mark, lone Surrogates). Tabs are ignored by design.
-	2. RGI emoji clusters (\p{RGI_Emoji}) are double-width.
-	3. Minimally-qualified/unqualified emoji clusters (ZWJ sequences with 2+ Extended_Pictographic, or keycap sequences) are double-width.
+	2. Clusters starting with an RGI emoji (\p{RGI_Emoji}), regional indicators, or a digit/#/* with VS16 are double-width, even with trailing extenders (e.g., a dangling ZWJ, an extra variation selector, or a spacing mark). Only a stray emoji modifier adds its own swatch width.
+	   A wide BMP emoji followed by VS15 (text presentation) is one column; anything after the VS15 is ignored.
+	3. Minimally-qualified emoji ZWJ sequences (2+ Extended_Pictographic) are double-width, except that a stray emoji modifier after the sequence adds its own swatch width. An unqualified keycap (no VS16) is text, so it uses the width of its base.
 	4. Hangul jamo collapse each standard modern Hangul L+V or L+V+T syllable piece to width 2.
 	   Unmatched repeated leading/vowel/trailing jamo stay additive because that matches how the terminals we target render them.
 	5. Otherwise sum the East Asian Width of every visible code point in the cluster, stopping at a ZWJ.
@@ -19,31 +20,37 @@ const segmenter = new Intl.Segmenter();
 // Intentionally a single negated class without a quantifier: a repeated pattern like `^(?:…|…)+$` backtracks exponentially on overlapping properties, and even `^[…]+$` overflows V8's backtrack stack (RangeError) on clusters with millions of marks.
 const visibleCharacterRegex = /[^\p{Default_Ignorable_Code_Point}\p{Control}\p{Enclosing_Mark}\p{Format}\p{Nonspacing_Mark}\p{Surrogate}]/v;
 
-// RGI emoji sequences
-const rgiEmojiRegex = /^\p{RGI_Emoji}$/v;
+// Clusters starting with an RGI emoji sequence. Not anchored at the end, so trailing extenders (ZWJ, marks, variation selectors) in the same cluster do not hide the emoji.
+// Regional indicators that do not form a valid flag (alone, or an unknown pair) are also shown as one wide symbol, and so is a digit, number sign, or asterisk with VS16 (an emoji presentation sequence that is not RGI on its own).
+const rgiEmojiRegex = /^(?:\p{RGI_Emoji}|\p{Regional_Indicator}{1,2}|[\d#*]\u{FE0F})/v;
 
-// Detect minimally-qualified/unqualified emoji sequences (missing VS16 but still render as double-width)
-const unqualifiedKeycapRegex = /^[\d#*]\u{20E3}$/v;
-const extendedPictographicRegex = /\p{Extended_Pictographic}/gv;
+// A wide BMP emoji followed by VS15 asks for its narrow text style. Every BMP Emoji_Presentation character has a standardized text variation sequence.
+// Limitation: astral emoji (e.g., 👍︎) keep their width, because only some of them have a text variation sequence and terminals disagree.
+const textPresentationEmojiRegex = /^[\p{Emoji_Presentation}--[\u{10000}-\u{10FFFF}]]\u{FE0E}/v;
 
-function isDoubleWidthNonRgiEmojiSequence(segment) {
-	// Real emoji clusters are < 30 chars; guard against pathological input
-	if (segment.length > 50) {
-		return false;
+// An emoji modifier that does not follow an emoji modifier base (or a ZWJ) is shown as a standalone color swatch (UTS #51)
+const strayEmojiModifierRegex = /(?<![\p{Emoji_Modifier_Base}\u{200D}])\p{Emoji_Modifier}/gv;
+
+// Counts the stray emoji modifiers at or after `fromIndex`. Searches the whole string so the lookbehind sees the character before the first one.
+function strayEmojiModifierCount(string, fromIndex) {
+	// Most emoji clusters are fully consumed by the emoji match
+	if (fromIndex >= string.length) {
+		return 0;
 	}
 
-	if (unqualifiedKeycapRegex.test(segment)) {
-		return true;
+	let count = 0;
+	for (const match of string.matchAll(strayEmojiModifierRegex)) {
+		if (match.index >= fromIndex) {
+			count++;
+		}
 	}
 
-	// ZWJ sequences with 2+ Extended_Pictographic
-	if (segment.includes('\u{200D}')) {
-		const pictographics = segment.match(extendedPictographicRegex);
-		return pictographics !== null && pictographics.length >= 2;
-	}
-
-	return false;
+	return count;
 }
+
+// Detect minimally-qualified emoji ZWJ sequences (missing VS16 but still render as double-width)
+// A ZWJ only joins a following Extended_Pictographic into the cluster when an Extended_Pictographic comes before it (GB11), so this means 2+ Extended_Pictographic joined by a ZWJ.
+const emojiZwjSequenceRegex = /\u{200D}\p{Extended_Pictographic}/v;
 
 // Returns the cluster starting at its first visible character, or `undefined` if the whole cluster is zero-width.
 function baseVisible(segment) {
@@ -177,9 +184,21 @@ export default function stringWidth(input, options = {}) {
 			continue;
 		}
 
-		// Emoji width logic
-		if (rgiEmojiRegex.test(segment) || isDoubleWidthNonRgiEmojiSequence(segment)) {
-			width += 2;
+		if (textPresentationEmojiRegex.test(visibleSegment)) {
+			width += 1;
+			continue;
+		}
+
+		// Emoji matching uses the visible prefix so extenders do not hide an emoji
+		const emoji = rgiEmojiRegex.exec(visibleSegment);
+		if (emoji) {
+			width += 2 + (strayEmojiModifierCount(visibleSegment, emoji[0].length) * 2);
+			continue;
+		}
+
+		const zwjSequence = emojiZwjSequenceRegex.exec(visibleSegment);
+		if (zwjSequence) {
+			width += 2 + (strayEmojiModifierCount(visibleSegment, zwjSequence.index + zwjSequence[0].length) * 2);
 			continue;
 		}
 
