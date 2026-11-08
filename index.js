@@ -10,7 +10,7 @@ Logic:
 	3. Minimally-qualified/unqualified emoji clusters (ZWJ sequences with 2+ Extended_Pictographic, or keycap sequences) are double-width.
 	4. Hangul jamo collapse each standard modern Hangul L+V or L+V+T syllable piece to width 2.
 	   Unmatched repeated leading/vowel/trailing jamo stay additive because that matches how the terminals we target render them.
-	5. Otherwise use East Asian Width of the cluster's first visible code point, and add widths for trailing spacing marks and Halfwidth/Fullwidth Forms within the same cluster (e.g., dakuten/handakuten/prolonged sound mark).
+	5. Otherwise sum the East Asian Width of every visible code point in the cluster, stopping at a ZWJ.
 */
 
 const segmenter = new Intl.Segmenter();
@@ -18,7 +18,6 @@ const segmenter = new Intl.Segmenter();
 // Matches a visible (printing) character. Used to find the base scalar of a cluster (skipping leading Prepend/Format/Marks) and to detect whole-cluster zero-width.
 // Intentionally a single negated class without a quantifier: a repeated pattern like `^(?:…|…)+$` backtracks exponentially on overlapping properties, and even `^[…]+$` overflows V8's backtrack stack (RangeError) on clusters with millions of marks.
 const visibleCharacterRegex = /[^\p{Default_Ignorable_Code_Point}\p{Control}\p{Enclosing_Mark}\p{Format}\p{Nonspacing_Mark}\p{Surrogate}]/v;
-const spacingMarkRegex = /[\p{Spacing_Mark}\u{E33}\u{EB3}]/v;
 
 // RGI emoji sequences
 const rgiEmojiRegex = /^\p{RGI_Emoji}$/v;
@@ -122,25 +121,23 @@ function hangulClusterWidth(visibleSegment, eastAsianWidthOptions) {
 	return width;
 }
 
-function trailingWidth(visibleSegment, eastAsianWidthOptions) {
-	let extra = 0;
-	let isFirst = true;
+// Sums the East Asian Width of the visible code points of a cluster.
+// Everything visible after the base still takes columns: spacing marks (Grapheme_Cluster_Break=SpacingMark, including Thai/Lao AM which are Lo), an emoji modifier not consumed by an emoji modifier sequence (shown as a standalone swatch), the consonants of an Indic conjunct joined by a virama (GB9c), and halfwidth dakuten/handakuten. A ZWJ ends the counting.
+function visibleCodePointsWidth(visibleSegment, eastAsianWidthOptions) {
+	let width = 0;
 
 	for (const character of visibleSegment) {
-		if (isFirst) {
-			isFirst = false;
-			continue;
+		// A ZWJ joins the rest of the cluster into one glyph (e.g., an explicit Indic half-form conjunct)
+		if (character === '\u{200D}') {
+			break;
 		}
 
-		if (
-			spacingMarkRegex.test(character)
-			|| (character >= '\u{FF00}' && character <= '\u{FFEF}')
-		) {
-			extra += eastAsianWidth(character.codePointAt(0), eastAsianWidthOptions);
+		if (visibleCharacterRegex.test(character)) {
+			width += eastAsianWidth(character.codePointAt(0), eastAsianWidthOptions);
 		}
 	}
 
-	return extra;
+	return width;
 }
 
 export default function stringWidth(input, options = {}) {
@@ -192,12 +189,8 @@ export default function stringWidth(input, options = {}) {
 			continue;
 		}
 
-		// Everything else: EAW of the cluster’s first visible scalar
-		const codePoint = visibleSegment.codePointAt(0);
-		width += eastAsianWidth(codePoint, eastAsianWidthOptions);
-
-		// Add width for trailing spacing marks and Halfwidth/Fullwidth Forms (e.g., ﾞ, ﾟ, ｰ)
-		width += trailingWidth(visibleSegment, eastAsianWidthOptions);
+		// Sum visible scalars, stopping at a ZWJ
+		width += visibleCodePointsWidth(visibleSegment, eastAsianWidthOptions);
 	}
 
 	return width;
