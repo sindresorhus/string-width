@@ -15,6 +15,7 @@ Logic:
 */
 
 const segmenter = new Intl.Segmenter();
+const nonAsciiOrControlRegex = /[^\u{20}-\u{7E}]/v;
 
 // Spacing Prepended_Concatenation_Mark format characters (e.g., ARABIC NUMBER SIGN) that are visible signs spanning the following characters. Excludes the zero-width U+070F SYRIAC ABBREVIATION MARK.
 const prependedConcatenationMarks = String.raw`\u{600}-\u{605}\u{6DD}\u{890}\u{891}\u{8E2}\u{110BD}\u{110CD}`;
@@ -33,21 +34,20 @@ const emojiPrefixRegex = /^(?:\p{RGI_Emoji}|\p{Regional_Indicator}{1,2}|[\d#*]\u
 // Limitation: astral emoji (e.g., 👍︎) keep their width, because only some of them have a text variation sequence and terminals disagree.
 const textPresentationEmojiRegex = /^[\p{Emoji_Presentation}--[\u{10000}-\u{10FFFF}]]\u{FE0E}/v;
 
-// An emoji modifier that does not follow an emoji modifier base (or a ZWJ) is shown as a standalone color swatch (UTS #51)
-const strayEmojiModifierRegex = /(?<![\p{Emoji_Modifier_Base}\u{200D}])\p{Emoji_Modifier}/gv;
-
-// Counts the stray emoji modifiers at or after `fromIndex`. Searches the whole string so the lookbehind sees the character before the first one.
+// Counts stray emoji modifiers from `fromIndex`, keeping the whole string for lookbehind context.
 function strayEmojiModifierCount(string, fromIndex) {
 	// Most emoji clusters are fully consumed by the emoji match
 	if (fromIndex >= string.length) {
 		return 0;
 	}
 
+	// An emoji modifier that does not follow an emoji modifier base (or a ZWJ) is shown as a standalone color swatch (UTS #51)
+	const modifierRegex = /(?<![\p{Emoji_Modifier_Base}\u{200D}])\p{Emoji_Modifier}/gv;
+	modifierRegex.lastIndex = fromIndex;
+
 	let count = 0;
-	for (const match of string.matchAll(strayEmojiModifierRegex)) {
-		if (match.index >= fromIndex) {
-			count++;
-		}
+	while (modifierRegex.test(string)) {
+		count++;
 	}
 
 	return count;
@@ -136,6 +136,60 @@ function clusterWidth(segment, eastAsianWidthOptions) {
 		: visibleCodePointsWidth(visibleSegment, eastAsianWidthOptions);
 }
 
+function unicodeWidth(string, ambiguousIsNarrow) {
+	// Count the initial printable ASCII directly, keeping its last character as a possible grapheme base.
+	let width = 0;
+	const firstNonAsciiIndex = string.search(nonAsciiOrControlRegex);
+	if (firstNonAsciiIndex > 1) {
+		width = firstNonAsciiIndex - 1;
+		string = string.slice(width);
+	}
+
+	// Keep the first trailing ASCII character with the Unicode prefix.
+	let suffixStart = string.length;
+	while (suffixStart > 0) {
+		const codePoint = string.codePointAt(suffixStart - 1);
+		if (codePoint < 0x20 || codePoint > 0x7E) {
+			break;
+		}
+
+		suffixStart--;
+	}
+
+	if (suffixStart + 1 < string.length) {
+		width += string.length - suffixStart - 1;
+		string = string.slice(0, suffixStart + 1);
+	}
+
+	// Printable ASCII, common Han, and precomposed Hangul have fixed widths and cannot form multi-character graphemes together.
+	if (!/[^\u{20}-\u{7E}\u{4E00}-\u{9FFF}\u{AC00}-\u{D7A3}]/v.test(string)) {
+		return width + string.length + string.replaceAll(/[\u{20}-\u{7E}]/gv, '').length;
+	}
+
+	// A lone surrogate is written out as U+FFFD REPLACEMENT CHARACTER
+	string = string.toWellFormed();
+
+	// Kirat Rai vowel runs form one glyph, including canonically decomposed vowels. Collapse them before segmentation so older Unicode tables give the same width.
+	string = string.replaceAll(/(?<=[\u{16D63}-\u{16D6A}])[\u{16D63}-\u{16D6A}]+/gv, '');
+
+	const eastAsianWidthOptions = {ambiguousAsWide: !ambiguousIsNarrow};
+
+	for (const {segment} of segmenter.segment(string)) {
+		// Fast path: a single visible UTF-16 code unit has its East Asian Width under every rule above (a single-code-point RGI emoji is East Asian Wide, and a Hangul cluster uses the width of its first code point).
+		if (segment.length === 1) {
+			if (visibleCharacterRegex.test(segment)) {
+				width += eastAsianWidth(segment.codePointAt(0), eastAsianWidthOptions);
+			}
+
+			continue;
+		}
+
+		width += clusterWidth(segment, eastAsianWidthOptions);
+	}
+
+	return width;
+}
+
 export default function stringWidth(input, options = {}) {
 	if (typeof input !== 'string' || input.length === 0) {
 		return 0;
@@ -155,31 +209,5 @@ export default function stringWidth(input, options = {}) {
 
 	// Fast path: printable ASCII (0x20–0x7E) needs no segmenter, regex, or EAW lookup. Its width equals its length.
 	// A negated class without a quantifier, since `^[…]*$` overflows V8's backtrack stack (RangeError) on strings with millions of characters.
-	if (!/[^\u{20}-\u{7E}]/v.test(string)) {
-		return string.length;
-	}
-
-	// A lone surrogate is written out as U+FFFD REPLACEMENT CHARACTER
-	string = string.toWellFormed();
-
-	// Kirat Rai vowel runs form one glyph, including canonically decomposed vowels. Collapse them before segmentation so older Unicode tables give the same width.
-	string = string.replaceAll(/(?<=[\u{16D63}-\u{16D6A}])[\u{16D63}-\u{16D6A}]+/gv, '');
-
-	let width = 0;
-	const eastAsianWidthOptions = {ambiguousAsWide: !ambiguousIsNarrow};
-
-	for (const {segment} of segmenter.segment(string)) {
-		// Fast path: a single visible UTF-16 code unit has its East Asian Width under every rule above (a single-code-point RGI emoji is East Asian Wide, and a Hangul cluster uses the width of its first code point).
-		if (segment.length === 1) {
-			if (visibleCharacterRegex.test(segment)) {
-				width += eastAsianWidth(segment.codePointAt(0), eastAsianWidthOptions);
-			}
-
-			continue;
-		}
-
-		width += clusterWidth(segment, eastAsianWidthOptions);
-	}
-
-	return width;
+	return nonAsciiOrControlRegex.test(string) ? unicodeWidth(string, ambiguousIsNarrow) : string.length;
 }

@@ -24,6 +24,15 @@ test('non-string input (boolean)', macro(true, 0));
 test('full-width characters', macro('你好', 4));
 test('half-width ASCII characters', macro('hello', 5));
 test('mixed width', macro('hello世界', 9));
+test('ASCII prefix before a keycap cluster', macro('prefix 1\u{FE0F}\u{20E3}', 9));
+test('ASCII prefix before a CRLF cluster', macro('prefix\r\nsuffix', 12));
+test('ASCII suffix after emoji with trailing ZWJ', macro('⚠️\u{200D} done', 7));
+test('ASCII suffix after a prepended concatenation mark', macro('\u{600}abc', 4));
+test('ASCII with Han and Hangul range boundaries', () => {
+	const input = 'A\u{4E00}\u{9FFF}\u{AC00}\u{D7A3}~';
+	assert.equal(stringWidth(input), 10);
+	assert.equal(stringWidth(input, {ambiguousIsNarrow: false}), 10);
+});
 
 // Ambiguous characters
 test('ambiguous narrow (default)', macro('±', 1));
